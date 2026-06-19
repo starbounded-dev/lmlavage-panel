@@ -16,12 +16,12 @@ export default async function AllocationPage() {
     <>
       <PageHeader title="Répartition" description="Partage des revenus de services au moment de l’encaissement." />
       <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-        <Card><CardHeader><CardTitle>Répartition actuelle</CardTitle><CardDescription>Base admissible historique : {formatCad(eligibleRevenue)}</CardDescription></CardHeader><CardContent><AllocationChart buckets={data.allocationBuckets} /></CardContent></Card>
+        <Card><CardHeader><CardTitle>Montants répartis</CardTitle><CardDescription>Revenus de services payés : {formatCad(eligibleRevenue)}</CardDescription></CardHeader><CardContent><AllocationChart buckets={data.allocationBuckets} /></CardContent></Card>
         <Card>
-          <CardHeader><CardTitle>Catégories de partage</CardTitle><CardDescription>Les modifications futures ne changent pas les paiements déjà répartis.</CardDescription></CardHeader>
+          <CardHeader><CardTitle>Règles de partage</CardTitle><CardDescription>La règle dépend de la personne qui a fait la vente. Les paiements déjà répartis restent figés.</CardDescription></CardHeader>
           <CardContent>
-            <Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Pourcentage</TableHead><TableHead className="text-right">Montant historique</TableHead></TableRow></TableHeader>
-              <TableBody>{data.allocationBuckets.map((bucket) => <TableRow key={bucket.id}><TableCell className="font-medium">{bucket.name}</TableCell><TableCell><Badge variant="secondary">{bucket.type === "person" ? "Personne" : "Réserve"}</Badge></TableCell><TableCell className="text-right font-mono">{bucket.percentage}%</TableCell><TableCell className="text-right font-mono">{formatCad(bucket.amount)}</TableCell></TableRow>)}</TableBody>
+            <Table><TableHeader><TableRow><TableHead>Nom</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Vente Alexis/Guillaume</TableHead><TableHead className="text-right">Vente P-O</TableHead><TableHead className="text-right">Montant historique</TableHead></TableRow></TableHeader>
+              <TableBody>{data.allocationBuckets.map((bucket) => <TableRow key={bucket.id}><TableCell className="font-medium">{bucket.name}</TableCell><TableCell><Badge variant="secondary">{bucket.type === "person" ? "Personne" : "Réserve"}</Badge></TableCell><TableCell className="text-right font-mono">{bucket.percentage}%</TableCell><TableCell className="text-right font-mono">{bucket.poSalePercentage}%</TableCell><TableCell className="text-right font-mono">{formatCad(bucket.amount)}</TableCell></TableRow>)}</TableBody>
             </Table>
           </CardContent>
         </Card>

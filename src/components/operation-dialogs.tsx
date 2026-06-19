@@ -172,6 +172,15 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
           </NativeSelect>
         </Field>
         <Field>
+          <FieldLabel htmlFor="job-seller">Vente faite par</FieldLabel>
+          <NativeSelect id="job-seller" name="sellerWorkerId" className="w-full" required>
+            <NativeSelectOption value="">Choisir le vendeur</NativeSelectOption>
+            {workers.filter((worker) => worker.active).map((worker) => (
+              <NativeSelectOption key={worker.id} value={worker.id}>{worker.name}</NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </Field>
+        <Field>
           <FieldLabel htmlFor="job-windows">Nombre de fenêtres</FieldLabel>
           <Input id="job-windows" name="windowCount" type="number" min="0" />
         </Field>

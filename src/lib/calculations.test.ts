@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateAllocationSnapshot, calculateTaxes, nextFollowupDate } from "@/lib/calculations";
+import { allocationPercentagesForProfile, calculateAllocationSnapshot, calculateTaxes, nextFollowupDate } from "@/lib/calculations";
 
 describe("calculs financiers", () => {
   it("laisse les taxes désactivées par défaut", () => {
@@ -14,12 +14,15 @@ describe("calculs financiers", () => {
     expect(() => calculateAllocationSnapshot(600, [{ name: "Alexis", percentage: 35 }])).toThrow(/100/);
   });
 
-  it("répartit seulement les revenus de service et exclut les pourboires", () => {
-    const result = calculateAllocationSnapshot(600, [
-      { name: "Alexis", percentage: 35 }, { name: "Guillaume", percentage: 35 },
-      { name: "Gaz", percentage: 15 }, { name: "P-O", percentage: 15 },
-    ]);
+  it("utilise 35/35/15/15 lorsque P-O fait la vente", () => {
+    const result = calculateAllocationSnapshot(600, allocationPercentagesForProfile("po_sale"));
     expect(result.map(({ amount }) => amount)).toEqual([210, 210, 90, 90]);
+    expect(result.reduce((sum, item) => sum + item.amount, 0)).toBe(600);
+  });
+
+  it("utilise 40/40/20/0 pour les autres ventes et l’historique", () => {
+    const result = calculateAllocationSnapshot(600, allocationPercentagesForProfile("standard"));
+    expect(result.map(({ amount }) => amount)).toEqual([240, 240, 120, 0]);
     expect(result.reduce((sum, item) => sum + item.amount, 0)).toBe(600);
   });
 

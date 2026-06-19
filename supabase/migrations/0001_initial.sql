@@ -5,6 +5,7 @@ create type public.payment_status as enum ('unpaid', 'paid');
 create type public.service_scope as enum ('inside', 'outside', 'both');
 create type public.sync_status as enum ('not_connected', 'pending', 'synced', 'error');
 create type public.bucket_type as enum ('person', 'reserve');
+create type public.sales_split_profile as enum ('standard', 'po_sale');
 
 create table public.businesses (
   id uuid primary key default gen_random_uuid(),
@@ -60,6 +61,7 @@ create table public.workers (
   business_id uuid not null references public.businesses(id) on delete cascade,
   name text not null,
   active boolean not null default true,
+  sales_split_profile public.sales_split_profile not null default 'standard',
   created_at timestamptz not null default now(),
   unique (business_id, name)
 );
@@ -70,6 +72,7 @@ create table public.jobs (
   business_id uuid not null references public.businesses(id) on delete cascade,
   client_id uuid not null references public.clients(id) on delete restrict,
   property_id uuid not null references public.properties(id) on delete restrict,
+  seller_worker_id uuid references public.workers(id) on delete restrict,
   starts_at timestamptz not null,
   ends_at timestamptz not null check (ends_at > starts_at),
   service_scope public.service_scope not null,
@@ -96,6 +99,7 @@ create index jobs_business_followup_idx on public.jobs(business_id, followup_dat
 create index jobs_business_unpaid_idx on public.jobs(business_id, payment_status) where payment_status = 'unpaid';
 create index jobs_client_id_idx on public.jobs(client_id);
 create index jobs_property_id_idx on public.jobs(property_id);
+create index jobs_seller_worker_id_idx on public.jobs(seller_worker_id);
 
 create table public.job_workers (
   business_id uuid not null references public.businesses(id) on delete cascade,
@@ -124,6 +128,7 @@ create table public.allocation_buckets (
   name text not null,
   bucket_type public.bucket_type not null default 'person',
   percentage numeric(7,4) not null check (percentage >= 0 and percentage <= 100),
+  po_sale_percentage numeric(7,4) not null check (po_sale_percentage >= 0 and po_sale_percentage <= 100),
   active boolean not null default true,
   sort_order smallint not null default 0,
   created_at timestamptz not null default now(),
@@ -249,10 +254,13 @@ end $$;
 
 create or replace function public.validate_allocation_total(target_business_id uuid)
 returns void language plpgsql security definer set search_path = public as $$
-declare total numeric;
+declare standard_total numeric; po_sale_total numeric;
 begin
-  select coalesce(sum(percentage), 0) into total from public.allocation_buckets where business_id = target_business_id and active;
-  if total <> 100 then raise exception 'Les pourcentages actifs doivent totaliser 100 (actuel: %).', total; end if;
+  select coalesce(sum(percentage), 0), coalesce(sum(po_sale_percentage), 0)
+  into standard_total, po_sale_total
+  from public.allocation_buckets where business_id = target_business_id and active;
+  if standard_total <> 100 then raise exception 'La répartition standard doit totaliser 100 (actuel: %).', standard_total; end if;
+  if po_sale_total <> 100 then raise exception 'La répartition des ventes P-O doit totaliser 100 (actuel: %).', po_sale_total; end if;
 end $$;
 
 create or replace function public.enforce_allocation_total()
@@ -265,16 +273,20 @@ create constraint trigger allocation_buckets_total after insert or update or del
 
 create or replace function public.snapshot_payment_allocations()
 returns trigger language plpgsql security definer set search_path = public as $$
-declare bucket record; running_total numeric(12,2) := 0; bucket_count integer; position integer := 0; allocation_amount numeric(12,2);
+declare bucket record; running_total numeric(12,2) := 0; bucket_count integer; position integer := 0; allocation_amount numeric(12,2); allocation_percentage numeric(7,4); seller_profile public.sales_split_profile := 'standard';
 begin
   if new.payment_status = 'paid' and (tg_op = 'INSERT' or old.payment_status <> 'paid') then
     perform public.validate_allocation_total(new.business_id);
+    if new.seller_worker_id is not null then
+      select sales_split_profile into seller_profile from public.workers where id = new.seller_worker_id and business_id = new.business_id;
+    end if;
     select count(*) into bucket_count from public.allocation_buckets where business_id = new.business_id and active;
     for bucket in select * from public.allocation_buckets where business_id = new.business_id and active order by sort_order, created_at loop
       position := position + 1;
-      allocation_amount := case when position = bucket_count then new.service_subtotal - running_total else round(new.service_subtotal * bucket.percentage / 100, 2) end;
+      allocation_percentage := case when seller_profile = 'po_sale' then bucket.po_sale_percentage else bucket.percentage end;
+      allocation_amount := case when position = bucket_count then new.service_subtotal - running_total else round(new.service_subtotal * allocation_percentage / 100, 2) end;
       insert into public.payment_allocations (business_id, job_id, bucket_id, bucket_name, percentage_snapshot, service_revenue_snapshot, amount)
-      values (new.business_id, new.id, bucket.id, bucket.name, bucket.percentage, new.service_subtotal, allocation_amount);
+      values (new.business_id, new.id, bucket.id, bucket.name, allocation_percentage, new.service_subtotal, allocation_amount);
       running_total := running_total + allocation_amount;
     end loop;
   end if;
@@ -321,11 +333,6 @@ begin
   on conflict (business_id, fingerprint) do nothing returning id into run_id;
   if run_id is null then return jsonb_build_object('alreadyImported', true); end if;
 
-  delete from public.allocation_buckets where business_id = p_business_id;
-  for item in select * from jsonb_array_elements(p_payload->'allocations') loop
-    insert into public.allocation_buckets (business_id, name, percentage, sort_order)
-    values (p_business_id, item->>'name', (item->>'percentage')::numeric, (item->>'sourceRow')::smallint);
-  end loop;
   perform public.validate_allocation_total(p_business_id);
 
   for item in select * from jsonb_array_elements(p_payload->'jobs') loop
@@ -362,7 +369,11 @@ begin
   if not exists (select 1 from auth.users where id = p_user_id and email = p_email) then raise exception 'Utilisateur introuvable'; end if;
   insert into public.businesses (name, digest_email) values ('LM Lavage de Vitres', p_email) returning id into business_id;
   insert into public.business_members values (business_id, p_user_id, 'owner', now());
-  insert into public.workers (business_id, name) values (business_id, 'Alexis'), (business_id, 'Guillaume'), (business_id, 'P-O');
-  insert into public.allocation_buckets (business_id, name, percentage, sort_order) values (business_id, 'Alexis', 35, 1), (business_id, 'Guillaume', 35, 2), (business_id, 'Gaz', 15, 3), (business_id, 'P-O', 15, 4);
+  insert into public.workers (business_id, name, sales_split_profile) values (business_id, 'Alexis', 'standard'), (business_id, 'Guillaume', 'standard'), (business_id, 'P-O', 'po_sale');
+  insert into public.allocation_buckets (business_id, name, bucket_type, percentage, po_sale_percentage, sort_order) values
+    (business_id, 'Alexis', 'person', 40, 35, 1),
+    (business_id, 'Guillaume', 'person', 40, 35, 2),
+    (business_id, 'Gaz', 'reserve', 20, 15, 3),
+    (business_id, 'P-O', 'person', 0, 15, 4);
   return business_id;
 end $$;

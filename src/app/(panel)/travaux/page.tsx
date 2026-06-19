@@ -22,13 +22,14 @@ export default async function JobsPage() {
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Montant</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
+              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Vendeur</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Montant</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell><p className="font-medium">{job.clientName}</p><p className="max-w-56 truncate text-xs text-muted-foreground">{job.address}</p></TableCell>
                   <TableCell><p>{formatDate(job.startsAt)}</p><p className="text-xs text-muted-foreground">{formatDate(job.startsAt, "HH:mm")}–{formatDate(job.endsAt, "HH:mm")}</p></TableCell>
+                  <TableCell>{job.sellerName ?? "Historique"}</TableCell>
                   <TableCell>{formatServiceScope(job.serviceScope)}{job.windowCount ? <p className="text-xs text-muted-foreground">{job.windowCount} fenêtres</p> : null}</TableCell>
                   <TableCell><JobStatusBadge status={job.status} /></TableCell>
                   <TableCell><PaymentStatusBadge status={job.paymentStatus} /></TableCell>

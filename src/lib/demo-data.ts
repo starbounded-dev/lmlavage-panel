@@ -106,9 +106,9 @@ export const demoData: AppData = {
     },
   ],
   workers: [
-    { id: "worker-alexis", name: "Alexis", active: true },
-    { id: "worker-guillaume", name: "Guillaume", active: true },
-    { id: "worker-po", name: "P-O", active: true },
+    { id: "worker-alexis", name: "Alexis", active: true, salesSplitProfile: "standard" },
+    { id: "worker-guillaume", name: "Guillaume", active: true, salesSplitProfile: "standard" },
+    { id: "worker-po", name: "P-O", active: true, salesSplitProfile: "po_sale" },
   ],
   jobs: [
     {
@@ -133,6 +133,8 @@ export const demoData: AppData = {
       followupDate: null,
       notes: null,
       workerIds: ["worker-alexis", "worker-guillaume"],
+      sellerWorkerId: "worker-alexis",
+      sellerName: "Alexis",
       googleSyncStatus: "synced",
     },
     {
@@ -157,6 +159,8 @@ export const demoData: AppData = {
       followupDate: "2027-05-03",
       notes: null,
       workerIds: ["worker-alexis", "worker-guillaume"],
+      sellerWorkerId: "worker-guillaume",
+      sellerName: "Guillaume",
       googleSyncStatus: "synced",
     },
     {
@@ -181,6 +185,8 @@ export const demoData: AppData = {
       followupDate: "2027-05-30",
       notes: null,
       workerIds: ["worker-alexis"],
+      sellerWorkerId: "worker-alexis",
+      sellerName: "Alexis",
       googleSyncStatus: "synced",
     },
     {
@@ -205,6 +211,8 @@ export const demoData: AppData = {
       followupDate: "2027-05-30",
       notes: "Nom du client à confirmer.",
       workerIds: ["worker-guillaume"],
+      sellerWorkerId: "worker-guillaume",
+      sellerName: "Guillaume",
       googleSyncStatus: "synced",
     },
     {
@@ -229,6 +237,8 @@ export const demoData: AppData = {
       followupDate: "2027-05-30",
       notes: null,
       workerIds: ["worker-alexis", "worker-guillaume"],
+      sellerWorkerId: "worker-alexis",
+      sellerName: "Alexis",
       googleSyncStatus: "synced",
     },
     {
@@ -253,6 +263,8 @@ export const demoData: AppData = {
       followupDate: "2027-06-18",
       notes: null,
       workerIds: ["worker-alexis"],
+      sellerWorkerId: "worker-alexis",
+      sellerName: "Alexis",
       googleSyncStatus: "synced",
     },
     {
@@ -277,6 +289,8 @@ export const demoData: AppData = {
       followupDate: "2027-06-18",
       notes: null,
       workerIds: ["worker-guillaume"],
+      sellerWorkerId: "worker-guillaume",
+      sellerName: "Guillaume",
       googleSyncStatus: "pending",
     },
     {
@@ -301,6 +315,8 @@ export const demoData: AppData = {
       followupDate: "2027-06-19",
       notes: null,
       workerIds: ["worker-alexis", "worker-guillaume"],
+      sellerWorkerId: "worker-po",
+      sellerName: "P-O",
       googleSyncStatus: "synced",
     },
   ],
@@ -361,10 +377,10 @@ export const demoData: AppData = {
     revisitDate: `2027-05-${String(20 + index).padStart(2, "0")}`,
   })),
   allocationBuckets: [
-    { id: "bucket-alexis", name: "Alexis", type: "person", percentage: 35, amount: 210 },
-    { id: "bucket-guillaume", name: "Guillaume", type: "person", percentage: 35, amount: 210 },
-    { id: "bucket-gas", name: "Gaz", type: "reserve", percentage: 15, amount: 90 },
-    { id: "bucket-po", name: "P-O", type: "person", percentage: 15, amount: 90 },
+    { id: "bucket-alexis", name: "Alexis", type: "person", percentage: 40, poSalePercentage: 35, amount: 240 },
+    { id: "bucket-guillaume", name: "Guillaume", type: "person", percentage: 40, poSalePercentage: 35, amount: 240 },
+    { id: "bucket-gas", name: "Gaz", type: "reserve", percentage: 20, poSalePercentage: 15, amount: 120 },
+    { id: "bucket-po", name: "P-O", type: "person", percentage: 0, poSalePercentage: 15, amount: 0 },
   ],
   revenueSeries: [
     { month: "Jan", current: 0, previous: 0 },

@@ -16,7 +16,7 @@ Sans variables Supabase, l’application démarre en mode démonstration avec le
 
 ## Configuration de production
 
-1. Créez un projet Supabase et exécutez `supabase/migrations/0001_initial.sql`.
+1. Créez un projet Supabase et exécutez, dans l’ordre, tous les fichiers de `supabase/migrations`. Si `0001_initial.sql` a déjà été appliqué, exécutez seulement les migrations suivantes, notamment `0002_sales_split_rules.sql`.
 2. Désactivez l’inscription publique dans Supabase Auth, puis créez le compte propriétaire par courriel et mot de passe.
 3. Exécutez dans l’éditeur SQL :
 

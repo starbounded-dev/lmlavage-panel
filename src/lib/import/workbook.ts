@@ -142,6 +142,7 @@ export async function parseLmWorkbook(buffer: Buffer): Promise<WorkbookPreview> 
   const expenseTotal = roundMoney(expenses.reduce((sum, expense) => sum + expense.total, 0));
   const allocationPercentage = roundMoney(allocations.reduce((sum, allocation) => sum + allocation.percentage, 0));
   const warnings = jobs.filter((job) => job.needsReview).map((job) => `Ligne ${job.sourceRow}: le nom du client doit être confirmé.`);
+  warnings.push("Les travaux historiques utilisent la règle 40 % Alexis, 40 % Guillaume, 20 % gaz et 0 % P-O.");
   if (tips > 0) warnings.push(`${tips.toFixed(2)} $ de pourboires historiques sont non attribués et doivent être révisés.`);
 
   return {

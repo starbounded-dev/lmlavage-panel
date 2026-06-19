@@ -155,10 +155,12 @@ export async function getAppData(): Promise<AppData> {
     id: text(row.id),
     name: text(row.name),
     active: boolean(row.active),
+    salesSplitProfile: text(row.sales_split_profile, "standard") as Worker["salesSplitProfile"],
   }));
 
   const clientMap = new Map(clients.map((client) => [client.id, client]));
   const propertyMap = new Map(properties.map((property) => [property.id, property]));
+  const workerMap = new Map(workers.map((worker) => [worker.id, worker]));
   const jobWorkerRows = rows(jobWorkersResult.data);
   const jobs: Job[] = rows(jobsResult.data).map((row) => {
     const client = clientMap.get(text(row.client_id));
@@ -190,6 +192,8 @@ export async function getAppData(): Promise<AppData> {
       workerIds: jobWorkerRows
         .filter((link) => text(link.job_id) === text(row.id))
         .map((link) => text(link.worker_id)),
+      sellerWorkerId: nullableText(row.seller_worker_id),
+      sellerName: workerMap.get(text(row.seller_worker_id))?.name ?? null,
       googleSyncStatus: text(row.google_sync_status, "not_connected") as Job["googleSyncStatus"],
     };
   });
@@ -224,6 +228,7 @@ export async function getAppData(): Promise<AppData> {
     name: text(row.name),
     type: text(row.bucket_type, "person") as AllocationBucket["type"],
     percentage: number(row.percentage),
+    poSalePercentage: number(row.po_sale_percentage),
     amount: allocationRows
       .filter((allocation) => text(allocation.bucket_id) === text(row.id))
       .reduce((total, allocation) => total + number(allocation.amount), 0),

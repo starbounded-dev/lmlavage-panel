@@ -49,7 +49,7 @@ export function AllocationChart({ buckets }: { buckets: AllocationBucket[] }) {
           <div key={bucket.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-sm">
             <span className="size-2.5 rounded-full" style={{ backgroundColor: allocationColors[index % allocationColors.length] }} />
             <span>{bucket.name}</span>
-            <span className="font-mono text-xs text-muted-foreground">{bucket.percentage}% · {formatCad(bucket.amount)}</span>
+            <span className="font-mono text-xs text-muted-foreground">{formatCad(bucket.amount)}</span>
           </div>
         ))}
       </div>

@@ -69,7 +69,7 @@ export function ExcelImporter() {
       <Card>
         <CardHeader><CardTitle>Contrôles attendus</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>5 clients, propriétés et travaux payés</p><p>600,00 $ de services + 30,00 $ de pourboires</p><p>3 dépenses totalisant 294,05 $</p><p>5 rues prospectées et 4 parts de répartition</p>
+          <p>5 clients, propriétés et travaux payés</p><p>600,00 $ de services + 30,00 $ de pourboires</p><p>3 dépenses totalisant 294,05 $</p><p>Historique réparti à 40/40/20/0</p>
         </CardContent>
       </Card>
       {preview && <Card className="lg:col-span-2"><CardHeader><CardTitle className="flex items-center gap-2"><FileSpreadsheetIcon />Aperçu validé</CardTitle></CardHeader><CardContent className="space-y-5">

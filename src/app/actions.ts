@@ -132,6 +132,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       followupDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
       workerIds: z.array(z.string()),
+      sellerWorkerId: requiredText,
     })
     .safeParse({
       propertyId: formValue(formData, "propertyId"),
@@ -143,6 +144,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       followupDate: formValue(formData, "followupDate"),
       notes: formValue(formData, "notes"),
       workerIds: formData.getAll("workerIds").filter((value): value is string => typeof value === "string"),
+      sellerWorkerId: formValue(formData, "sellerWorkerId"),
     });
 
   if (!parsed.success) {
@@ -163,7 +165,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
 
-  const [{ data: property, error: propertyError }, { data: business, error: businessError }] =
+  const [{ data: property, error: propertyError }, { data: business, error: businessError }, { data: seller, error: sellerError }] =
     await Promise.all([
       supabase
         .from("properties")
@@ -176,10 +178,17 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
         .select("gst_enabled,qst_enabled,gst_rate,qst_rate")
         .eq("id", businessId)
         .single(),
+      supabase
+        .from("workers")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("id", parsed.data.sellerWorkerId)
+        .eq("active", true)
+        .single(),
     ]);
 
-  if (propertyError || businessError || !property || !business) {
-    return { ok: false, message: "La propriété ou les taxes sont introuvables." };
+  if (propertyError || businessError || sellerError || !property || !business || !seller) {
+    return { ok: false, message: "La propriété, le vendeur ou les taxes sont introuvables." };
   }
 
   const taxes = calculateTaxes(parsed.data.serviceSubtotal, {
@@ -205,6 +214,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       total_due: taxes.total,
       followup_date: parsed.data.followupDate || null,
       notes: parsed.data.notes || null,
+      seller_worker_id: seller.id,
       google_sync_status: "pending",
     })
     .select("id")

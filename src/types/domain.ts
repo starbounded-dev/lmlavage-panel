@@ -3,6 +3,7 @@ export type PaymentStatus = "unpaid" | "paid";
 export type ServiceScope = "inside" | "outside" | "both";
 export type SyncStatus = "not_connected" | "pending" | "synced" | "error";
 export type AllocationBucketType = "person" | "reserve";
+export type SalesSplitProfile = "standard" | "po_sale";
 
 export type Business = {
   id: string;
@@ -40,6 +41,7 @@ export type Worker = {
   id: string;
   name: string;
   active: boolean;
+  salesSplitProfile: SalesSplitProfile;
 };
 
 export type Job = {
@@ -64,6 +66,8 @@ export type Job = {
   followupDate: string | null;
   notes: string | null;
   workerIds: string[];
+  sellerWorkerId: string | null;
+  sellerName: string | null;
   googleSyncStatus: SyncStatus;
 };
 
@@ -96,6 +100,7 @@ export type AllocationBucket = {
   name: string;
   type: AllocationBucketType;
   percentage: number;
+  poSalePercentage: number;
   amount: number;
 };
 
