@@ -26,4 +26,11 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   const poRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "P-O", exact: true }) });
   await expect(poRow).toContainText("0%");
   await expect(poRow).toContainText("15%");
+
+  await page.goto("/parametres");
+  await page.getByRole("tab", { name: "Équipe" }).click();
+  await expect(page.getByText("Créer un compte", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Courriel")).toBeDisabled();
+  await expect(page.getByLabel("Mot de passe initial")).toBeDisabled();
+  await expect(page.getByText("Comptes autorisés", { exact: true })).toBeVisible();
 });

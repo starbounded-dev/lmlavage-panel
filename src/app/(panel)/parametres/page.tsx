@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarSyncIcon, FileSpreadsheetIcon, LockKeyholeIcon, MailIcon, ShieldCheckIcon, UsersIcon } from "lucide-react";
+import { AccountManager } from "@/components/account-manager";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +13,12 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAppData } from "@/lib/repository";
+import { getAccountManagementData } from "@/lib/accounts";
 
 export const metadata: Metadata = { title: "Paramètres" };
 
 export default async function SettingsPage() {
-  const data = await getAppData();
+  const [data, accountManagement] = await Promise.all([getAppData(), getAccountManagementData()]);
   const isDemo = data.business.id === "demo-business";
   return (
     <>
@@ -62,7 +64,8 @@ export default async function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="team">
-          <Card>
+          <div className="flex flex-col gap-4">
+            <Card>
             <CardHeader><CardTitle>Travailleurs</CardTitle><CardDescription>Ils peuvent être assignés aux travaux sans disposer d’un compte.</CardDescription></CardHeader>
             <CardContent className="flex flex-col gap-3">
               {data.workers.map((worker) => (
@@ -72,7 +75,9 @@ export default async function SettingsPage() {
                 </div>
               ))}
             </CardContent>
-          </Card>
+            </Card>
+            <AccountManager accounts={accountManagement.accounts} canManage={accountManagement.canManage} isDemo={isDemo} />
+          </div>
         </TabsContent>
 
         <TabsContent value="integrations">
@@ -94,8 +99,8 @@ export default async function SettingsPage() {
 
         <TabsContent value="security">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><LockKeyholeIcon className="size-5 text-primary" />Accès propriétaire</CardTitle><CardDescription>Un seul compte propriétaire; aucune inscription publique.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground"><p>Les pages, actions serveur et routes d’intégration valident toutes la session.</p><p>Les politiques RLS de Supabase isolent également chaque entreprise dans la base de données.</p></CardContent>
+            <CardHeader><CardTitle className="flex items-center gap-2"><LockKeyholeIcon className="size-5 text-primary" />Accès au panneau</CardTitle><CardDescription>Le propriétaire crée les comptes administrateurs; aucune inscription publique.</CardDescription></CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground"><p>Les administrateurs accèdent aux opérations, mais seul le propriétaire peut gérer les comptes.</p><p>Les pages, actions serveur et politiques RLS valident également l’appartenance à l’entreprise.</p></CardContent>
           </Card>
         </TabsContent>
       </Tabs>

@@ -7,9 +7,10 @@ import { fromZonedTime } from "date-fns-tz";
 import { z } from "zod";
 import { calculateTaxes } from "@/lib/calculations";
 import { isDemoMode } from "@/lib/env";
-import { requireBusinessId } from "@/lib/auth";
+import { requireBusinessId, requireOwnerBusinessId } from "@/lib/auth";
 import { syncJobToGoogle } from "@/lib/google/sync";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type ActionResult = { ok: boolean; message: string };
 
@@ -118,6 +119,60 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
 
   revalidatePath("/clients");
   return { ok: true, message: "Client ajouté." };
+}
+
+export async function createAccountAction(formData: FormData): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      email: z.string().trim().email().max(320),
+      password: z
+        .string()
+        .min(12)
+        .max(72)
+        .regex(/[a-z]/)
+        .regex(/[A-Z]/)
+        .regex(/[0-9]/),
+    })
+    .safeParse({
+      email: formValue(formData, "email").toLowerCase(),
+      password: formValue(formData, "password"),
+    });
+
+  if (!parsed.success) {
+    return { ok: false, message: "Utilisez un courriel valide et un mot de passe de 12 caractères avec majuscule, minuscule et chiffre." };
+  }
+
+  const { auth, businessId } = await requireOwnerBusinessId();
+  if (auth.isDemo) {
+    return { ok: false, message: "La création de comptes est désactivée en mode démonstration." };
+  }
+
+  const admin = getSupabaseAdminClient();
+  if (!admin) return { ok: false, message: "La clé de service Supabase est absente." };
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    email_confirm: true,
+  });
+
+  if (error || !data.user) {
+    return { ok: false, message: error?.message ?? "Impossible de créer le compte." };
+  }
+
+  const { error: membershipError } = await admin.from("business_members").insert({
+    business_id: businessId,
+    user_id: data.user.id,
+    role: "admin",
+  });
+
+  if (membershipError) {
+    await admin.auth.admin.deleteUser(data.user.id);
+    return { ok: false, message: "Le compte n’a pas pu être rattaché à l’entreprise." };
+  }
+
+  revalidatePath("/parametres");
+  return { ok: true, message: "Compte administrateur créé. Transmettez le mot de passe initial de façon sécurisée." };
 }
 
 export async function createJobAction(formData: FormData): Promise<ActionResult> {

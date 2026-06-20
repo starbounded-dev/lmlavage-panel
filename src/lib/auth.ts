@@ -10,6 +10,8 @@ export type AuthContext = {
   isDemo: boolean;
 };
 
+export type BusinessRole = "owner" | "admin";
+
 export async function getAuthContext(): Promise<AuthContext | null> {
   if (isDemoMode()) {
     return {
@@ -46,7 +48,7 @@ export async function requireAuth() {
 export async function requireBusinessId() {
   const auth = await requireAuth();
   if (auth.isDemo) {
-    return { auth, businessId: "demo-business" };
+    return { auth, businessId: "demo-business", role: "owner" as const };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -56,14 +58,21 @@ export async function requireBusinessId() {
 
   const { data, error } = await supabase
     .from("business_members")
-    .select("business_id")
+    .select("business_id,role")
     .eq("user_id", auth.userId)
-    .eq("role", "owner")
     .single();
 
-  if (error || !data) {
+  if (error || !data || (data.role !== "owner" && data.role !== "admin")) {
     throw new Error("Accès à l’entreprise refusé.");
   }
 
-  return { auth, businessId: data.business_id as string };
+  return { auth, businessId: data.business_id as string, role: data.role as BusinessRole };
+}
+
+export async function requireOwnerBusinessId() {
+  const context = await requireBusinessId();
+  if (context.role !== "owner") {
+    throw new Error("Seul un propriétaire peut gérer les comptes.");
+  }
+  return context;
 }
