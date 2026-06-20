@@ -178,6 +178,7 @@ export async function getAppData(): Promise<AppData> {
         : "Adresse à confirmer",
       startsAt: text(row.starts_at),
       endsAt: text(row.ends_at),
+      timeIsSet: row.time_is_set !== false,
       status: text(row.status, "scheduled") as Job["status"],
       paymentStatus: text(row.payment_status, "unpaid") as Job["paymentStatus"],
       serviceScope: text(row.service_scope, "outside") as Job["serviceScope"],

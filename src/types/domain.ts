@@ -54,6 +54,7 @@ export type Job = {
   address: string;
   startsAt: string;
   endsAt: string;
+  timeIsSet: boolean;
   status: JobStatus;
   paymentStatus: PaymentStatus;
   serviceScope: ServiceScope;

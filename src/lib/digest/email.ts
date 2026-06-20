@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { formatInTimeZone } from "date-fns-tz";
 import { QUEBEC_TIMEZONE } from "@/lib/digest/time";
 
-type DigestJob = { starts_at: string; service_subtotal: number | string; followup_date?: string | null; clients: { name: string | null } | null; properties: { address: string | null } | null };
+type DigestJob = { starts_at: string; time_is_set: boolean; service_subtotal: number | string; followup_date?: string | null; clients: { name: string | null } | null; properties: { address: string | null } | null };
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
@@ -11,7 +11,7 @@ function escapeHtml(value: string) {
 
 function jobList(jobs: DigestJob[], empty: string, withTime = false) {
   if (jobs.length === 0) return `<p style="color:#64748b">${empty}</p>`;
-  return `<ul>${jobs.map((job) => `<li style="margin:8px 0"><strong>${escapeHtml(job.clients?.name ?? "Client")}</strong> — ${escapeHtml(job.properties?.address ?? "Adresse à confirmer")}${withTime ? `, ${formatInTimeZone(job.starts_at, QUEBEC_TIMEZONE, "HH:mm")}` : ""}</li>`).join("")}</ul>`;
+  return `<ul>${jobs.map((job) => `<li style="margin:8px 0"><strong>${escapeHtml(job.clients?.name ?? "Client")}</strong> — ${escapeHtml(job.properties?.address ?? "Adresse à confirmer")}${withTime ? `, ${job.time_is_set ? formatInTimeZone(job.starts_at, QUEBEC_TIMEZONE, "HH:mm") : "heure à confirmer"}` : ""}</li>`).join("")}</ul>`;
 }
 
 export function buildDigestHtml(input: { businessName: string; localDate: string; today: DigestJob[]; reminders: DigestJob[]; unpaid: DigestJob[] }) {

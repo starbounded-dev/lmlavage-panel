@@ -1,11 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { addDays } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { google } from "googleapis";
 import { createGoogleOAuthClient } from "@/lib/google/client";
 import { decryptRefreshToken } from "@/lib/google/tokens";
 
 type JoinedJob = {
-  id: string; starts_at: string; ends_at: string; status: string; service_scope: string; window_count: number | null;
+  id: string; starts_at: string; ends_at: string; time_is_set: boolean; status: string; service_scope: string; window_count: number | null;
   notes: string | null; google_event_id: string | null;
   clients: { name: string | null } | null; properties: { address: string | null; city: string | null; province: string | null } | null;
   job_workers: Array<{ workers: { name: string } | null }>;
@@ -14,7 +16,7 @@ type JoinedJob = {
 export async function syncJobToGoogle(supabase: SupabaseClient, businessId: string, jobId: string) {
   const [{ data: connection, error: connectionError }, { data: rawJob, error: jobError }] = await Promise.all([
     supabase.from("calendar_connections").select("calendar_id,encrypted_refresh_token,token_iv,token_tag").eq("business_id", businessId).maybeSingle(),
-    supabase.from("jobs").select("id,starts_at,ends_at,status,service_scope,window_count,notes,google_event_id,clients(name),properties(address,city,province),job_workers(workers(name))").eq("business_id", businessId).eq("id", jobId).single(),
+    supabase.from("jobs").select("id,starts_at,ends_at,time_is_set,status,service_scope,window_count,notes,google_event_id,clients(name),properties(address,city,province),job_workers(workers(name))").eq("business_id", businessId).eq("id", jobId).single(),
   ]);
   if (connectionError || !connection) {
     await supabase.from("jobs").update({ google_sync_status: "not_connected", google_sync_error: connectionError?.message ?? null }).eq("business_id", businessId).eq("id", jobId);
@@ -37,11 +39,20 @@ export async function syncJobToGoogle(supabase: SupabaseClient, businessId: stri
     const location = job.properties
       ? [job.properties.address, job.properties.city, job.properties.province].filter(Boolean).join(", ")
       : "";
+    const timing = job.time_is_set
+      ? {
+          start: { dateTime: job.starts_at, timeZone: "America/Toronto" },
+          end: { dateTime: job.ends_at, timeZone: "America/Toronto" },
+        }
+      : {
+          start: { date: formatInTimeZone(job.starts_at, "America/Toronto", "yyyy-MM-dd") },
+          end: { date: formatInTimeZone(addDays(new Date(job.starts_at), 1), "America/Toronto", "yyyy-MM-dd") },
+        };
     const requestBody = {
       summary: `LM — ${job.clients?.name ?? "Client"}`,
       location: location || undefined,
       description: [`Service : ${scope}`, job.window_count !== null ? `Fenêtres : ${job.window_count}` : null, workers ? `Travailleurs : ${workers}` : null, job.notes].filter(Boolean).join("\n"),
-      start: { dateTime: job.starts_at, timeZone: "America/Toronto" }, end: { dateTime: job.ends_at, timeZone: "America/Toronto" },
+      ...timing,
     };
     const result = job.google_event_id ? await calendar.events.update({ calendarId, eventId: job.google_event_id, requestBody }) : await calendar.events.insert({ calendarId, requestBody });
     await supabase.from("jobs").update({ google_event_id: result.data.id ?? job.google_event_id, google_sync_status: "synced", google_sync_error: null }).eq("business_id", businessId).eq("id", jobId);

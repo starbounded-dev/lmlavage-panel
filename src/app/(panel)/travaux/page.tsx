@@ -28,7 +28,7 @@ export default async function JobsPage() {
               {jobs.map((job) => (
                 <TableRow key={job.id}>
                   <TableCell><p className="font-medium">{job.clientName}</p><p className="max-w-56 truncate text-xs text-muted-foreground">{job.address}</p></TableCell>
-                  <TableCell><p>{formatDate(job.startsAt)}</p><p className="text-xs text-muted-foreground">{formatDate(job.startsAt, "HH:mm")}–{formatDate(job.endsAt, "HH:mm")}</p></TableCell>
+                  <TableCell><p>{formatDate(job.startsAt)}</p><p className="text-xs text-muted-foreground">{job.timeIsSet ? `${formatDate(job.startsAt, "HH:mm")}–${formatDate(job.endsAt, "HH:mm")}` : "Heure à confirmer"}</p></TableCell>
                   <TableCell>{job.sellerName ?? "Historique"}</TableCell>
                   <TableCell>{formatServiceScope(job.serviceScope)}{job.windowCount ? <p className="text-xs text-muted-foreground">{job.windowCount} fenêtres</p> : null}</TableCell>
                   <TableCell><JobStatusBadge status={job.status} /></TableCell>

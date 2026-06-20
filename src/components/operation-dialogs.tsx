@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExpenseAmountFields } from "@/components/expense-amount-fields";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MutationDialog } from "@/components/mutation-dialog";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -101,13 +101,18 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
             ))}
           </NativeSelect>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="job-start">Début</FieldLabel>
-          <Input id="job-start" name="startsAt" type="datetime-local" required />
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="job-date">Date du travail</FieldLabel>
+          <Input id="job-date" name="jobDate" type="date" required />
         </Field>
         <Field>
-          <FieldLabel htmlFor="job-end">Fin</FieldLabel>
-          <Input id="job-end" name="endsAt" type="datetime-local" required />
+          <FieldLabel htmlFor="job-start-time">Heure de début (facultative)</FieldLabel>
+          <Input id="job-start-time" name="startTime" type="time" />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="job-end-time">Heure de fin (facultative)</FieldLabel>
+          <Input id="job-end-time" name="endTime" type="time" />
+          <FieldDescription>Indiquez les deux heures ou laissez les deux champs vides.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="job-scope">Service</FieldLabel>

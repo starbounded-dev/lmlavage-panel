@@ -32,9 +32,9 @@ export async function GET(request: Request) {
     }
     try {
       const [todayResult, remindersResult, unpaidResult] = await Promise.all([
-        supabase.from("jobs").select("starts_at,service_subtotal,clients(name),properties(address)").eq("business_id", business.id).neq("status", "cancelled").gte("starts_at", bounds.start).lte("starts_at", bounds.end).order("starts_at"),
-        supabase.from("jobs").select("starts_at,service_subtotal,followup_date,clients(name),properties(address)").eq("business_id", business.id).neq("status", "cancelled").lte("followup_date", clock.date).order("followup_date"),
-        supabase.from("jobs").select("starts_at,service_subtotal,clients(name),properties(address)").eq("business_id", business.id).eq("status", "completed").eq("payment_status", "unpaid").order("starts_at"),
+        supabase.from("jobs").select("starts_at,time_is_set,service_subtotal,clients(name),properties(address)").eq("business_id", business.id).neq("status", "cancelled").gte("starts_at", bounds.start).lte("starts_at", bounds.end).order("starts_at"),
+        supabase.from("jobs").select("starts_at,time_is_set,service_subtotal,followup_date,clients(name),properties(address)").eq("business_id", business.id).neq("status", "cancelled").lte("followup_date", clock.date).order("followup_date"),
+        supabase.from("jobs").select("starts_at,time_is_set,service_subtotal,clients(name),properties(address)").eq("business_id", business.id).eq("status", "completed").eq("payment_status", "unpaid").order("starts_at"),
       ]);
       const queryError = todayResult.error ?? remindersResult.error ?? unpaidResult.error;
       if (queryError) throw queryError;

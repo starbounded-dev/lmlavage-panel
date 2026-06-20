@@ -21,6 +21,9 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
 
   await page.goto("/travaux");
   await page.getByRole("button", { name: "Nouveau travail" }).click();
+  await expect(page.getByLabel("Date du travail")).toHaveAttribute("required", "");
+  await expect(page.getByLabel("Heure de début (facultative)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Heure de fin (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Vente faite par")).toBeVisible();
   await expect(page.getByLabel("Vente faite par").locator("option")).toContainText(["Choisir le vendeur", "Alexis", "Guillaume", "P-O"]);
   await page.getByRole("button", { name: "Annuler" }).click();

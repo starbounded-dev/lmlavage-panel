@@ -30,7 +30,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,13 +87,18 @@ export function JobActions({ job, clients, workers }: JobActionsProps) {
               ))}
             </NativeSelect>
           </Field>
-          <Field>
-            <FieldLabel htmlFor={`job-start-${job.id}`}>Début</FieldLabel>
-            <Input id={`job-start-${job.id}`} name="startsAt" type="datetime-local" defaultValue={formatInTimeZone(job.startsAt, "America/Toronto", "yyyy-MM-dd'T'HH:mm")} required />
+          <Field className="sm:col-span-2">
+            <FieldLabel htmlFor={`job-date-${job.id}`}>Date du travail</FieldLabel>
+            <Input id={`job-date-${job.id}`} name="jobDate" type="date" defaultValue={formatInTimeZone(job.startsAt, "America/Toronto", "yyyy-MM-dd")} required />
           </Field>
           <Field>
-            <FieldLabel htmlFor={`job-end-${job.id}`}>Fin</FieldLabel>
-            <Input id={`job-end-${job.id}`} name="endsAt" type="datetime-local" defaultValue={formatInTimeZone(job.endsAt, "America/Toronto", "yyyy-MM-dd'T'HH:mm")} required />
+            <FieldLabel htmlFor={`job-start-time-${job.id}`}>Heure de début (facultative)</FieldLabel>
+            <Input id={`job-start-time-${job.id}`} name="startTime" type="time" defaultValue={job.timeIsSet ? formatInTimeZone(job.startsAt, "America/Toronto", "HH:mm") : ""} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`job-end-time-${job.id}`}>Heure de fin (facultative)</FieldLabel>
+            <Input id={`job-end-time-${job.id}`} name="endTime" type="time" defaultValue={job.timeIsSet ? formatInTimeZone(job.endsAt, "America/Toronto", "HH:mm") : ""} />
+            <FieldDescription>Indiquez les deux heures ou laissez les deux champs vides.</FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor={`job-scope-${job.id}`}>Service</FieldLabel>

@@ -28,7 +28,7 @@ export function WeeklySchedule({ jobs, referenceDate }: { jobs: Job[]; reference
                     </div>
                     <p className="flex items-center gap-1 text-[0.68rem] text-muted-foreground">
                       <Clock3Icon className="size-3" />
-                      {format(new Date(job.startsAt), "HH:mm")}–{format(new Date(job.endsAt), "HH:mm")}
+                      {job.timeIsSet ? `${format(new Date(job.startsAt), "HH:mm")}–${format(new Date(job.endsAt), "HH:mm")}` : "Heure à confirmer"}
                     </p>
                     <p className="mt-1 flex items-center gap-1 truncate text-[0.68rem] text-muted-foreground">
                       <MapPinIcon className="size-3" />

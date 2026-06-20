@@ -3,12 +3,12 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { fromZonedTime } from "date-fns-tz";
 import { z } from "zod";
 import { calculateIncludedTaxes, calculateTaxes, roundMoney } from "@/lib/calculations";
 import { isDemoMode } from "@/lib/env";
 import { requireBusinessId, requireOwnerBusinessId } from "@/lib/auth";
 import { syncJobToGoogle } from "@/lib/google/sync";
+import { resolveJobSchedule } from "@/lib/job-schedule";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -363,8 +363,9 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
   const parsed = z
     .object({
       propertyId: requiredText,
-      startsAt: requiredText,
-      endsAt: requiredText,
+      jobDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      startTime: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]),
+      endTime: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]),
       serviceScope: z.enum(["inside", "outside", "both"]),
       windowCount: z.coerce.number().int().min(0).max(10000).optional(),
       serviceSubtotal: z.coerce.number().min(0).max(1_000_000),
@@ -375,8 +376,9 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     })
     .safeParse({
       propertyId: formValue(formData, "propertyId"),
-      startsAt: formValue(formData, "startsAt"),
-      endsAt: formValue(formData, "endsAt"),
+      jobDate: formValue(formData, "jobDate"),
+      startTime: formValue(formData, "startTime"),
+      endTime: formValue(formData, "endTime"),
       serviceScope: formValue(formData, "serviceScope"),
       windowCount: formValue(formData, "windowCount") || undefined,
       serviceSubtotal: formValue(formData, "serviceSubtotal"),
@@ -390,11 +392,8 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     return { ok: false, message: "Vérifiez les renseignements du travail." };
   }
 
-  const start = fromZonedTime(parsed.data.startsAt, "America/Toronto");
-  const end = fromZonedTime(parsed.data.endsAt, "America/Toronto");
-  if (end <= start) {
-    return { ok: false, message: "L’heure de fin doit suivre l’heure de début." };
-  }
+  const schedule = resolveJobSchedule(parsed.data.jobDate, parsed.data.startTime, parsed.data.endTime);
+  if (!schedule.ok) return { ok: false, message: schedule.error };
 
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) {
@@ -443,8 +442,9 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       business_id: businessId,
       client_id: property.client_id,
       property_id: parsed.data.propertyId,
-      starts_at: start.toISOString(),
-      ends_at: end.toISOString(),
+      starts_at: schedule.start.toISOString(),
+      ends_at: schedule.end.toISOString(),
+      time_is_set: schedule.timeIsSet,
       service_scope: parsed.data.serviceScope,
       window_count: parsed.data.windowCount ?? null,
       service_subtotal: parsed.data.serviceSubtotal,
@@ -487,8 +487,9 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     .object({
       jobId: requiredText,
       propertyId: requiredText,
-      startsAt: requiredText,
-      endsAt: requiredText,
+      jobDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      startTime: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]),
+      endTime: z.union([z.literal(""), z.string().regex(/^\d{2}:\d{2}$/)]),
       serviceScope: z.enum(["inside", "outside", "both"]),
       windowCount: z.coerce.number().int().min(0).max(10000).optional(),
       serviceSubtotal: z.coerce.number().min(0).max(1_000_000),
@@ -500,8 +501,9 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     .safeParse({
       jobId: formValue(formData, "jobId"),
       propertyId: formValue(formData, "propertyId"),
-      startsAt: formValue(formData, "startsAt"),
-      endsAt: formValue(formData, "endsAt"),
+      jobDate: formValue(formData, "jobDate"),
+      startTime: formValue(formData, "startTime"),
+      endTime: formValue(formData, "endTime"),
       serviceScope: formValue(formData, "serviceScope"),
       windowCount: formValue(formData, "windowCount") || undefined,
       serviceSubtotal: formValue(formData, "serviceSubtotal"),
@@ -512,9 +514,8 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     });
   if (!parsed.success) return { ok: false, message: "Vérifiez les renseignements du travail." };
 
-  const start = fromZonedTime(parsed.data.startsAt, "America/Toronto");
-  const end = fromZonedTime(parsed.data.endsAt, "America/Toronto");
-  if (end <= start) return { ok: false, message: "L’heure de fin doit suivre l’heure de début." };
+  const schedule = resolveJobSchedule(parsed.data.jobDate, parsed.data.startTime, parsed.data.endTime);
+  if (!schedule.ok) return { ok: false, message: schedule.error };
 
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) return { ok: true, message: "Travail modifié en mode démonstration." };
@@ -544,8 +545,9 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     .update({
       client_id: property.client_id,
       property_id: parsed.data.propertyId,
-      starts_at: start.toISOString(),
-      ends_at: end.toISOString(),
+      starts_at: schedule.start.toISOString(),
+      ends_at: schedule.end.toISOString(),
+      time_is_set: schedule.timeIsSet,
       service_scope: parsed.data.serviceScope,
       window_count: parsed.data.windowCount ?? null,
       service_subtotal: parsed.data.serviceSubtotal,

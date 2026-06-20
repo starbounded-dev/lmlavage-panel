@@ -5,6 +5,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import frCaLocale from "@fullcalendar/core/locales/fr-ca";
+import { formatInTimeZone } from "date-fns-tz";
 import type { Job } from "@/types/domain";
 
 export function CalendarView({ jobs, initialDate }: { jobs: Job[]; initialDate: string }) {
@@ -14,7 +15,7 @@ export function CalendarView({ jobs, initialDate }: { jobs: Job[]; initialDate: 
       locale={frCaLocale}
       initialView="timeGridWeek"
       initialDate={initialDate}
-      allDaySlot={false}
+      allDaySlot
       nowIndicator
       height="auto"
       slotMinTime="07:00:00"
@@ -29,8 +30,9 @@ export function CalendarView({ jobs, initialDate }: { jobs: Job[]; initialDate: 
       events={jobs.map((job) => ({
         id: job.id,
         title: `${job.clientName} · ${job.address.split(",")[0]}`,
-        start: job.startsAt,
-        end: job.endsAt,
+        start: job.timeIsSet ? job.startsAt : formatInTimeZone(job.startsAt, "America/Toronto", "yyyy-MM-dd"),
+        end: job.timeIsSet ? job.endsAt : undefined,
+        allDay: !job.timeIsSet,
         classNames: [`status-${job.status}`, `payment-${job.paymentStatus}`],
       }))}
       eventClick={(event) => {

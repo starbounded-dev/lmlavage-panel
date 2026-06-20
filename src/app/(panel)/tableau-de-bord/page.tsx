@@ -74,7 +74,7 @@ export default async function DashboardPage() {
         <CardContent className="flex flex-col gap-2">
           {todayJobs.map((job) => (
             <div key={job.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-              <div className="min-w-0"><p className="text-sm font-medium">{formatDate(job.startsAt, "HH:mm")} · {job.clientName}</p><p className="truncate text-xs text-muted-foreground">{job.address}</p></div>
+              <div className="min-w-0"><p className="text-sm font-medium">{job.timeIsSet ? formatDate(job.startsAt, "HH:mm") : "Heure à confirmer"} · {job.clientName}</p><p className="truncate text-xs text-muted-foreground">{job.address}</p></div>
               <PaymentStatusBadge status={job.paymentStatus} />
             </div>
           ))}
@@ -152,7 +152,7 @@ export default async function DashboardPage() {
               <div key={job.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                 <div>
                   <p className="text-sm font-medium">{job.clientName}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(job.startsAt, "HH:mm")} · {job.address}</p>
+                  <p className="text-xs text-muted-foreground">{job.timeIsSet ? formatDate(job.startsAt, "HH:mm") : "Heure à confirmer"} · {job.address}</p>
                 </div>
                 <PaymentStatusBadge status={job.paymentStatus} />
               </div>
