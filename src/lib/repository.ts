@@ -96,7 +96,11 @@ export async function getAppData(): Promise<AppData> {
     supabase.from("jobs").select("*").eq("business_id", businessId).order("starts_at", { ascending: false }),
     supabase.from("job_workers").select("*").eq("business_id", businessId),
     supabase.from("expenses").select("*").eq("business_id", businessId).order("expense_date", { ascending: false }),
-    supabase.from("canvassing_visits").select("*").eq("business_id", businessId).order("visited_at", { ascending: false }),
+    supabase
+      .from("canvassing_visits")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("visited_at", { ascending: false, nullsFirst: false }),
     supabase.from("allocation_buckets").select("*").eq("business_id", businessId).eq("active", true).order("sort_order"),
     supabase.from("payment_allocations").select("*").eq("business_id", businessId),
   ]);
@@ -220,7 +224,7 @@ export async function getAppData(): Promise<AppData> {
     id: text(row.id),
     street: text(row.street),
     city: text(row.city),
-    visitedAt: text(row.visited_at),
+    visitedAt: nullableText(row.visited_at),
     outcome: text(row.outcome),
     notes: nullableText(row.notes),
     revisitDate: nullableText(row.revisit_date),

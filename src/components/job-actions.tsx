@@ -121,8 +121,13 @@ export function JobActions({ job, clients, workers }: JobActionsProps) {
             <Input id={`job-windows-${job.id}`} name="windowCount" type="number" min="0" defaultValue={job.windowCount ?? ""} />
           </Field>
           <Field>
-            <FieldLabel htmlFor={`job-price-${job.id}`}>Prix avant taxes</FieldLabel>
+            <FieldLabel htmlFor={`job-price-${job.id}`}>Prix du travail avant taxes</FieldLabel>
             <Input id={`job-price-${job.id}`} name="serviceSubtotal" type="number" min="0" step="0.01" defaultValue={job.serviceSubtotal} required />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`job-tip-${job.id}`}>Pourboire (séparé)</FieldLabel>
+            <Input id={`job-tip-${job.id}`} name="tipAmount" type="number" min="0" step="0.01" defaultValue={job.tipAmount} />
+            <FieldDescription>Réparti également entre les travailleurs assignés.</FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor={`job-followup-${job.id}`}>Date de retour suggérée</FieldLabel>

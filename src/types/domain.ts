@@ -93,7 +93,7 @@ export type CanvassingVisit = {
   id: string;
   street: string;
   city: string;
-  visitedAt: string;
+  visitedAt: string | null;
   outcome: string;
   notes: string | null;
   revisitDate: string | null;

@@ -35,8 +35,8 @@ export function VisitActions({ visit }: { visit: CanvassingVisit }) {
             <Input id={`visit-city-${visit.id}`} name="city" defaultValue={visit.city} required />
           </Field>
           <Field>
-            <FieldLabel htmlFor={`visit-date-${visit.id}`}>Date de visite</FieldLabel>
-            <Input id={`visit-date-${visit.id}`} name="visitedAt" type="date" defaultValue={visit.visitedAt} required />
+            <FieldLabel htmlFor={`visit-date-${visit.id}`}>Date de visite (facultative)</FieldLabel>
+            <Input id={`visit-date-${visit.id}`} name="visitedAt" type="date" defaultValue={visit.visitedAt ?? ""} />
           </Field>
           <Field>
             <FieldLabel htmlFor={`visit-outcome-${visit.id}`}>Résultat</FieldLabel>
@@ -49,7 +49,7 @@ export function VisitActions({ visit }: { visit: CanvassingVisit }) {
             </NativeSelect>
           </Field>
           <Field>
-            <FieldLabel htmlFor={`visit-revisit-${visit.id}`}>Date de retour</FieldLabel>
+            <FieldLabel htmlFor={`visit-revisit-${visit.id}`}>Date de retour (facultative)</FieldLabel>
             <Input id={`visit-revisit-${visit.id}`} name="revisitDate" type="date" defaultValue={visit.revisitDate ?? ""} />
           </Field>
           <Field className="sm:col-span-2">

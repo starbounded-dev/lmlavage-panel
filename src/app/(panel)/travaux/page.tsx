@@ -22,7 +22,7 @@ export default async function JobsPage() {
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Vendeur</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Montant</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
+              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Vendeur</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Total travail</TableHead><TableHead className="text-right">Pourboire</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
@@ -34,7 +34,8 @@ export default async function JobsPage() {
                   <TableCell><JobStatusBadge status={job.status} /></TableCell>
                   <TableCell><PaymentStatusBadge status={job.paymentStatus} /></TableCell>
                   <TableCell><SyncStatusBadge status={job.googleSyncStatus} /></TableCell>
-                  <TableCell className="text-right font-mono">{formatCad(job.totalDue + job.tipAmount)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatCad(job.totalDue)}</TableCell>
+                  <TableCell className="text-right font-mono text-primary">{formatCad(job.tipAmount)}</TableCell>
                   <TableCell><JobActions job={job} clients={data.clients} workers={data.workers} /></TableCell>
                 </TableRow>
               ))}

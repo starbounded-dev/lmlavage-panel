@@ -53,7 +53,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <CardHeader><CardTitle>Historique des travaux</CardTitle><CardDescription>{jobs.length} intervention{jobs.length === 1 ? "" : "s"}.</CardDescription></CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead className="text-right">Total travail</TableHead><TableHead className="text-right">Pourboire</TableHead></TableRow></TableHeader>
               <TableBody>
                 {jobs.map((job) => (
                   <TableRow key={job.id}>
@@ -61,7 +61,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                     <TableCell>{formatServiceScope(job.serviceScope)}</TableCell>
                     <TableCell><JobStatusBadge status={job.status} /></TableCell>
                     <TableCell><PaymentStatusBadge status={job.paymentStatus} /></TableCell>
-                    <TableCell className="text-right font-mono">{formatCad(job.totalDue + job.tipAmount)}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCad(job.totalDue)}</TableCell>
+                    <TableCell className="text-right font-mono text-primary">{formatCad(job.tipAmount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

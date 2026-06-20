@@ -369,6 +369,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       serviceScope: z.enum(["inside", "outside", "both"]),
       windowCount: z.coerce.number().int().min(0).max(10000).optional(),
       serviceSubtotal: z.coerce.number().min(0).max(1_000_000),
+      tipAmount: z.coerce.number().min(0).max(1_000_000),
       followupDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
       workerIds: z.array(z.string()),
@@ -382,6 +383,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       serviceScope: formValue(formData, "serviceScope"),
       windowCount: formValue(formData, "windowCount") || undefined,
       serviceSubtotal: formValue(formData, "serviceSubtotal"),
+      tipAmount: formValue(formData, "tipAmount") || "0",
       followupDate: formValue(formData, "followupDate"),
       notes: formValue(formData, "notes"),
       workerIds: formData.getAll("workerIds").filter((value): value is string => typeof value === "string"),
@@ -474,6 +476,17 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     if (workersError) return { ok: false, message: workersError.message };
   }
 
+  const { error: tipError } = await supabase.rpc("set_job_tip", {
+    p_business_id: businessId,
+    p_job_id: job.id,
+    p_tip_amount: parsed.data.tipAmount,
+    p_worker_ids: [...new Set(parsed.data.workerIds)],
+  });
+  if (tipError) {
+    await supabase.from("jobs").delete().eq("business_id", businessId).eq("id", job.id);
+    return { ok: false, message: tipError.message };
+  }
+
   await syncJobToGoogle(supabase, businessId, job.id);
 
   revalidatePath("/travaux");
@@ -493,6 +506,7 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
       serviceScope: z.enum(["inside", "outside", "both"]),
       windowCount: z.coerce.number().int().min(0).max(10000).optional(),
       serviceSubtotal: z.coerce.number().min(0).max(1_000_000),
+      tipAmount: z.coerce.number().min(0).max(1_000_000),
       followupDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
       workerIds: z.array(requiredText),
@@ -507,6 +521,7 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
       serviceScope: formValue(formData, "serviceScope"),
       windowCount: formValue(formData, "windowCount") || undefined,
       serviceSubtotal: formValue(formData, "serviceSubtotal"),
+      tipAmount: formValue(formData, "tipAmount") || "0",
       followupDate: formValue(formData, "followupDate"),
       notes: formValue(formData, "notes"),
       workerIds: formData.getAll("workerIds").filter((value): value is string => typeof value === "string"),
@@ -575,6 +590,14 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     );
     if (linkError) return { ok: false, message: linkError.message };
   }
+
+  const { error: tipError } = await supabase.rpc("set_job_tip", {
+    p_business_id: businessId,
+    p_job_id: parsed.data.jobId,
+    p_tip_amount: parsed.data.tipAmount,
+    p_worker_ids: [...new Set(parsed.data.workerIds)],
+  });
+  if (tipError) return { ok: false, message: tipError.message };
 
   await syncJobToGoogle(supabase, businessId, parsed.data.jobId);
   revalidatePath("/travaux");
@@ -765,7 +788,7 @@ export async function createVisitAction(formData: FormData): Promise<ActionResul
     .object({
       street: requiredText,
       city: requiredText,
-      visitedAt: requiredText,
+      visitedAt: z.string().trim().max(20),
       outcome: z.enum(["Rue visitée", "Clients obtenus", "Clients obtenus et à revenir", "À revisiter", "Aucun intérêt"]),
       revisitDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
@@ -794,7 +817,7 @@ export async function createVisitAction(formData: FormData): Promise<ActionResul
     business_id: businessId,
     street: parsed.data.street,
     city: parsed.data.city,
-    visited_at: parsed.data.visitedAt,
+    visited_at: parsed.data.visitedAt || null,
     outcome: parsed.data.outcome,
     revisit_date: parsed.data.revisitDate || null,
     notes: parsed.data.notes || null,
@@ -811,7 +834,7 @@ export async function updateVisitAction(formData: FormData): Promise<ActionResul
       visitId: requiredText,
       street: requiredText,
       city: requiredText,
-      visitedAt: requiredText,
+      visitedAt: z.string().trim().max(20),
       outcome: z.enum(["Rue visitée", "Clients obtenus", "Clients obtenus et à revenir", "À revisiter", "Aucun intérêt"]),
       revisitDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
@@ -835,7 +858,7 @@ export async function updateVisitAction(formData: FormData): Promise<ActionResul
     .update({
       street: parsed.data.street,
       city: parsed.data.city,
-      visited_at: parsed.data.visitedAt,
+      visited_at: parsed.data.visitedAt || null,
       outcome: parsed.data.outcome,
       revisit_date: parsed.data.revisitDate || null,
       notes: parsed.data.notes || null,

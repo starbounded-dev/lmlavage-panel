@@ -136,8 +136,13 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
           <Input id="job-windows" name="windowCount" type="number" min="0" />
         </Field>
         <Field>
-          <FieldLabel htmlFor="job-price">Prix avant taxes</FieldLabel>
+          <FieldLabel htmlFor="job-price">Prix du travail avant taxes</FieldLabel>
           <Input id="job-price" name="serviceSubtotal" type="number" min="0" step="0.01" required />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="job-tip">Pourboire (séparé)</FieldLabel>
+          <Input id="job-tip" name="tipAmount" type="number" min="0" step="0.01" defaultValue="0" />
+          <FieldDescription>Réparti également entre les travailleurs assignés.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="job-followup">Date de retour suggérée</FieldLabel>
@@ -238,8 +243,8 @@ export function NewVisitDialog() {
           <Input id="visit-city" name="city" defaultValue="Gatineau" required />
         </Field>
         <Field>
-          <FieldLabel htmlFor="visit-date">Date de visite</FieldLabel>
-          <Input id="visit-date" name="visitedAt" type="date" required />
+          <FieldLabel htmlFor="visit-date">Date de visite (facultative)</FieldLabel>
+          <Input id="visit-date" name="visitedAt" type="date" />
         </Field>
         <Field>
           <FieldLabel htmlFor="visit-outcome">Résultat</FieldLabel>
@@ -252,7 +257,7 @@ export function NewVisitDialog() {
           </NativeSelect>
         </Field>
         <Field>
-          <FieldLabel htmlFor="visit-revisit">Date de retour</FieldLabel>
+          <FieldLabel htmlFor="visit-revisit">Date de retour (facultative)</FieldLabel>
           <Input id="visit-revisit" name="revisitDate" type="date" />
         </Field>
         <Field className="sm:col-span-2">

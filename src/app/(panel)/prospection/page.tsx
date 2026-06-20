@@ -22,7 +22,7 @@ export default async function ProspectingPage() {
             <TableHeader><TableRow><TableHead>Rue</TableHead><TableHead>Ville</TableHead><TableHead>Visite</TableHead><TableHead>Résultat</TableHead><TableHead>Retour prévu</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
             <TableBody>
               {data.canvassingVisits.map((visit) => (
-                <TableRow key={visit.id}><TableCell className="font-medium capitalize">{visit.street}</TableCell><TableCell>{visit.city}</TableCell><TableCell>{formatDate(visit.visitedAt)}</TableCell><TableCell><Badge variant={visit.outcome.includes("Clients obtenus") ? "default" : "secondary"}>{visit.outcome}</Badge></TableCell><TableCell>{visit.revisitDate ? formatDate(visit.revisitDate) : "—"}</TableCell><TableCell><VisitActions visit={visit} /></TableCell></TableRow>
+                <TableRow key={visit.id}><TableCell className="font-medium capitalize">{visit.street}</TableCell><TableCell>{visit.city}</TableCell><TableCell>{visit.visitedAt ? formatDate(visit.visitedAt) : "À confirmer"}</TableCell><TableCell><Badge variant={visit.outcome.includes("Clients obtenus") ? "default" : "secondary"}>{visit.outcome}</Badge></TableCell><TableCell>{visit.revisitDate ? formatDate(visit.revisitDate) : "À confirmer"}</TableCell><TableCell><VisitActions visit={visit} /></TableCell></TableRow>
               ))}
             </TableBody>
           </Table>

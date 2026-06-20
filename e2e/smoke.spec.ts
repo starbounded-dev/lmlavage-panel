@@ -24,14 +24,19 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await expect(page.getByLabel("Date du travail")).toHaveAttribute("required", "");
   await expect(page.getByLabel("Heure de début (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Heure de fin (facultative)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Pourboire (séparé)")).toHaveValue("0");
   await expect(page.getByLabel("Vente faite par")).toBeVisible();
   await expect(page.getByLabel("Vente faite par").locator("option")).toContainText(["Choisir le vendeur", "Alexis", "Guillaume", "P-O"]);
   await page.getByRole("button", { name: "Annuler" }).click();
+  await expect(page.getByRole("columnheader", { name: "Total travail" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Pourboire" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Modifier le travail de/ }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Supprimer le travail de/ }).first()).toBeVisible();
 
   await page.goto("/prospection");
   await page.getByRole("button", { name: "Ajouter une rue" }).click();
+  await expect(page.getByLabel("Date de visite (facultative)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Date de retour (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Résultat").getByRole("option", { name: "Clients obtenus et à revenir", exact: true })).toBeAttached();
   await page.getByRole("button", { name: "Annuler" }).click();
   await expect(page.getByRole("button", { name: /Modifier rue/ }).first()).toBeVisible();
