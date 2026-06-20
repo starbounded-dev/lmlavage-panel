@@ -90,7 +90,7 @@ export async function getAppData(): Promise<AppData> {
     allocationsResult,
   ] = await Promise.all([
     supabase.from("businesses").select("*").eq("id", businessId).single(),
-    supabase.from("clients").select("*").eq("business_id", businessId).order("name"),
+    supabase.from("clients").select("*").eq("business_id", businessId).order("client_number"),
     supabase.from("properties").select("*").eq("business_id", businessId),
     supabase.from("workers").select("*").eq("business_id", businessId).order("name"),
     supabase.from("jobs").select("*").eq("business_id", businessId).order("starts_at", { ascending: false }),
@@ -135,15 +135,16 @@ export async function getAppData(): Promise<AppData> {
   const properties: Property[] = rows(propertiesResult.data).map((row) => ({
     id: text(row.id),
     clientId: text(row.client_id),
-    address: text(row.address),
-    city: text(row.city),
-    province: text(row.province, "QC"),
+    address: nullableText(row.address),
+    city: nullableText(row.city),
+    province: nullableText(row.province),
     postalCode: nullableText(row.postal_code),
   }));
 
   const clients: Client[] = rows(clientsResult.data).map((row) => ({
     id: text(row.id),
-    name: text(row.name),
+    clientNumber: number(row.client_number),
+    name: nullableText(row.name),
     phone: nullableText(row.phone),
     email: nullableText(row.email),
     notes: nullableText(row.notes),
@@ -156,6 +157,7 @@ export async function getAppData(): Promise<AppData> {
     name: text(row.name),
     active: boolean(row.active),
     salesSplitProfile: text(row.sales_split_profile, "standard") as Worker["salesSplitProfile"],
+    userId: nullableText(row.user_id),
   }));
 
   const clientMap = new Map(clients.map((client) => [client.id, client]));
@@ -170,9 +172,9 @@ export async function getAppData(): Promise<AppData> {
       id: text(row.id),
       clientId: text(row.client_id),
       propertyId: text(row.property_id),
-      clientName: client?.name ?? "Client",
+      clientName: client?.name ?? `Client #${client?.clientNumber ?? "?"}`,
       address: property
-        ? `${property.address}, ${property.city}`
+        ? [property.address, property.city].filter(Boolean).join(", ") || "Adresse à confirmer"
         : "Adresse à confirmer",
       startsAt: text(row.starts_at),
       endsAt: text(row.ends_at),
@@ -209,6 +211,7 @@ export async function getAppData(): Promise<AppData> {
     total: number(row.total),
     paymentMethod: nullableText(row.payment_method),
     notes: nullableText(row.notes),
+    jobId: nullableText(row.job_id),
     receiptPath: nullableText(row.receipt_path),
   }));
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeftIcon, MailIcon, MapPinIcon, PhoneIcon } from "lucide-react";
+import { ClientActions } from "@/components/client-actions";
 import { PageHeader } from "@/components/page-header";
 import { JobStatusBadge, PaymentStatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         <ArrowLeftIcon data-icon="inline-start" />
         Retour aux clients
       </Button>
-      <PageHeader title={client.name} description="Dossier client, propriétés et historique complet." />
+      <PageHeader
+        title={client.name ?? `Client #${client.clientNumber}`}
+        description={`Client #${client.clientNumber} · dossier, propriétés et historique complet.`}
+        action={<ClientActions client={client} />}
+      />
       <div className="grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
         <div className="flex flex-col gap-4">
           <Card>
@@ -37,9 +42,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               {client.properties.map((property) => (
                 <div key={property.id} className="flex items-start gap-2 rounded-lg border p-3 text-sm">
                   <MapPinIcon className="mt-0.5 size-4 text-primary" />
-                  {property.address}, {property.city}, {property.province}
+                  {[property.address, property.city, property.province].filter(Boolean).join(", ") || "Adresse à confirmer"}
                 </div>
               ))}
+              {client.properties.length === 0 ? <p className="text-sm text-muted-foreground">Aucune adresse pour le moment.</p> : null}
             </CardContent>
           </Card>
         </div>

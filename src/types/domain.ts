@@ -21,15 +21,16 @@ export type Business = {
 export type Property = {
   id: string;
   clientId: string;
-  address: string;
-  city: string;
-  province: string;
+  address: string | null;
+  city: string | null;
+  province: string | null;
   postalCode: string | null;
 };
 
 export type Client = {
   id: string;
-  name: string;
+  clientNumber: number;
+  name: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;
@@ -42,6 +43,7 @@ export type Worker = {
   name: string;
   active: boolean;
   salesSplitProfile: SalesSplitProfile;
+  userId: string | null;
 };
 
 export type Job = {
@@ -82,6 +84,7 @@ export type Expense = {
   total: number;
   paymentMethod: string | null;
   notes: string | null;
+  jobId: string | null;
   receiptPath: string | null;
 };
 

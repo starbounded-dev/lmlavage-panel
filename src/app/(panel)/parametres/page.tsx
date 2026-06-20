@@ -66,17 +66,17 @@ export default async function SettingsPage() {
         <TabsContent value="team">
           <div className="flex flex-col gap-4">
             <Card>
-            <CardHeader><CardTitle>Travailleurs</CardTitle><CardDescription>Ils peuvent être assignés aux travaux sans disposer d’un compte.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {data.workers.map((worker) => (
-                <div key={worker.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-full bg-secondary text-primary"><UsersIcon className="size-4" /></div><span className="font-medium">{worker.name}</span></div>
-                  <Badge variant={worker.active ? "default" : "secondary"}>{worker.active ? "Actif" : "Inactif"}</Badge>
-                </div>
-              ))}
-            </CardContent>
+              <CardHeader><CardTitle>Travailleurs</CardTitle><CardDescription>Chaque travailleur peut être lié à un compte du panneau.</CardDescription></CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {data.workers.map((worker) => (
+                  <div key={worker.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-3"><div className="flex size-9 items-center justify-center rounded-full bg-secondary text-primary"><UsersIcon className="size-4" /></div><span className="font-medium">{worker.name}</span></div>
+                    <div className="flex items-center gap-2"><Badge variant={worker.userId ? "default" : "outline"}>{worker.userId ? "Compte lié" : "Sans compte"}</Badge><Badge variant={worker.active ? "secondary" : "outline"}>{worker.active ? "Actif" : "Inactif"}</Badge></div>
+                  </div>
+                ))}
+              </CardContent>
             </Card>
-            <AccountManager accounts={accountManagement.accounts} canManage={accountManagement.canManage} isDemo={isDemo} />
+            <AccountManager accounts={accountManagement.accounts} workers={data.workers} canManage={accountManagement.canManage} isDemo={isDemo} />
           </div>
         </TabsContent>
 

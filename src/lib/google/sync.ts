@@ -7,7 +7,7 @@ import { decryptRefreshToken } from "@/lib/google/tokens";
 type JoinedJob = {
   id: string; starts_at: string; ends_at: string; status: string; service_scope: string; window_count: number | null;
   notes: string | null; google_event_id: string | null;
-  clients: { name: string } | null; properties: { address: string; city: string; province: string } | null;
+  clients: { name: string | null } | null; properties: { address: string | null; city: string | null; province: string | null } | null;
   job_workers: Array<{ workers: { name: string } | null }>;
 };
 
@@ -34,9 +34,12 @@ export async function syncJobToGoogle(supabase: SupabaseClient, businessId: stri
     }
     const workers = job.job_workers.map((item) => item.workers?.name).filter(Boolean).join(", ");
     const scope = job.service_scope === "both" ? "Intérieur et extérieur" : job.service_scope === "inside" ? "Intérieur" : "Extérieur";
+    const location = job.properties
+      ? [job.properties.address, job.properties.city, job.properties.province].filter(Boolean).join(", ")
+      : "";
     const requestBody = {
       summary: `LM — ${job.clients?.name ?? "Client"}`,
-      location: job.properties ? `${job.properties.address}, ${job.properties.city}, ${job.properties.province}` : undefined,
+      location: location || undefined,
       description: [`Service : ${scope}`, job.window_count !== null ? `Fenêtres : ${job.window_count}` : null, workers ? `Travailleurs : ${workers}` : null, job.notes].filter(Boolean).join("\n"),
       start: { dateTime: job.starts_at, timeZone: "America/Toronto" }, end: { dateTime: job.ends_at, timeZone: "America/Toronto" },
     };

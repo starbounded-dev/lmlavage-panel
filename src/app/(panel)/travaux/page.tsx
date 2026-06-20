@@ -35,7 +35,7 @@ export default async function JobsPage() {
                   <TableCell><PaymentStatusBadge status={job.paymentStatus} /></TableCell>
                   <TableCell><SyncStatusBadge status={job.googleSyncStatus} /></TableCell>
                   <TableCell className="text-right font-mono">{formatCad(job.totalDue + job.tipAmount)}</TableCell>
-                  <TableCell><JobActions jobId={job.id} /></TableCell>
+                  <TableCell><JobActions job={job} clients={data.clients} workers={data.workers} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>

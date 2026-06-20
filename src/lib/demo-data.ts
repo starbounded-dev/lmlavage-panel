@@ -16,6 +16,7 @@ export const demoData: AppData = {
   clients: [
     {
       id: "client-marie",
+      clientNumber: 1,
       name: "Marie-Pier",
       phone: "819 555-0142",
       email: "marie.pier@example.com",
@@ -34,6 +35,7 @@ export const demoData: AppData = {
     },
     {
       id: "client-kevin",
+      clientNumber: 2,
       name: "Kevin",
       phone: "819 555-0188",
       email: null,
@@ -52,6 +54,7 @@ export const demoData: AppData = {
     },
     {
       id: "client-josee",
+      clientNumber: 3,
       name: "Josée",
       phone: "819 555-0115",
       email: "josee@example.com",
@@ -70,6 +73,7 @@ export const demoData: AppData = {
     },
     {
       id: "client-review",
+      clientNumber: 4,
       name: "Client à confirmer",
       phone: null,
       email: null,
@@ -88,6 +92,7 @@ export const demoData: AppData = {
     },
     {
       id: "client-marcel",
+      clientNumber: 5,
       name: "Marcel",
       phone: "819 555-0199",
       email: null,
@@ -106,9 +111,9 @@ export const demoData: AppData = {
     },
   ],
   workers: [
-    { id: "worker-alexis", name: "Alexis", active: true, salesSplitProfile: "standard" },
-    { id: "worker-guillaume", name: "Guillaume", active: true, salesSplitProfile: "standard" },
-    { id: "worker-po", name: "P-O", active: true, salesSplitProfile: "po_sale" },
+    { id: "worker-alexis", name: "Alexis", active: true, salesSplitProfile: "standard", userId: null },
+    { id: "worker-guillaume", name: "Guillaume", active: true, salesSplitProfile: "standard", userId: null },
+    { id: "worker-po", name: "P-O", active: true, salesSplitProfile: "po_sale", userId: null },
   ],
   jobs: [
     {
@@ -332,6 +337,7 @@ export const demoData: AppData = {
       total: 192.93,
       paymentMethod: null,
       notes: "Importé du classeur initial.",
+      jobId: null,
       receiptPath: null,
     },
     {
@@ -345,6 +351,7 @@ export const demoData: AppData = {
       total: 63.22,
       paymentMethod: null,
       notes: "Importé du classeur initial.",
+      jobId: null,
       receiptPath: null,
     },
     {
@@ -358,6 +365,7 @@ export const demoData: AppData = {
       total: 37.9,
       paymentMethod: null,
       notes: "Importé du classeur initial.",
+      jobId: null,
       receiptPath: null,
     },
   ],

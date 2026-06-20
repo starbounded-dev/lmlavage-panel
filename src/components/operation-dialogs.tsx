@@ -1,89 +1,26 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
 import { CalendarPlusIcon, MapPinnedIcon, ReceiptTextIcon, UserPlusIcon } from "lucide-react";
-import { toast } from "sonner";
 import {
   createClientAction,
   createExpenseAction,
   createJobAction,
   createVisitAction,
-  type ActionResult,
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { MutationDialog } from "@/components/mutation-dialog";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Client, Job, Worker } from "@/types/domain";
 
-type DialogFormProps = {
-  title: string;
-  description: string;
-  trigger: React.ReactNode;
-  action: (formData: FormData) => Promise<ActionResult>;
-  children: React.ReactNode;
-};
-
-function DialogForm({ title, description, trigger, action, children }: DialogFormProps) {
-  const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    startTransition(async () => {
-      const result = await action(formData);
-      if (result.ok) {
-        toast.success(result.message);
-        form.reset();
-        setOpen(false);
-      } else {
-        toast.error(result.message);
-      }
-    });
-  }
-
+export function NewClientDialog({ nextClientNumber }: { nextClientNumber: number }) {
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger as React.ReactElement}>{null}</DialogTrigger>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={onSubmit}>
-          <FieldGroup>{children}</FieldGroup>
-          <DialogFooter className="mt-5">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? "Enregistrement…" : "Enregistrer"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-export function NewClientDialog() {
-  return (
-    <DialogForm
+    <MutationDialog
       title="Nouveau client"
-      description="Ajoutez le contact et sa première adresse de service."
+      description="Seul le numéro client est obligatoire. Les autres informations peuvent être ajoutées plus tard."
       action={createClientAction}
       trigger={
         <Button>
@@ -94,8 +31,12 @@ export function NewClientDialog() {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor="client-name">Nom</FieldLabel>
-          <Input id="client-name" name="name" required />
+          <FieldLabel htmlFor="client-number">Numéro client</FieldLabel>
+          <Input id="client-number" name="clientNumber" type="number" min="1" defaultValue={nextClientNumber} required />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="client-name">Nom (facultatif)</FieldLabel>
+          <Input id="client-name" name="name" />
         </Field>
         <Field>
           <FieldLabel htmlFor="client-phone">Téléphone</FieldLabel>
@@ -106,33 +47,37 @@ export function NewClientDialog() {
           <Input id="client-email" name="email" type="email" />
         </Field>
         <Field className="sm:col-span-2">
-          <FieldLabel htmlFor="client-address">Adresse</FieldLabel>
-          <Input id="client-address" name="address" required />
+          <FieldLabel htmlFor="client-address">Adresse (facultative)</FieldLabel>
+          <Input id="client-address" name="address" />
         </Field>
         <Field>
           <FieldLabel htmlFor="client-city">Ville</FieldLabel>
-          <Input id="client-city" name="city" defaultValue="Gatineau" required />
+          <Input id="client-city" name="city" />
         </Field>
         <Field>
           <FieldLabel htmlFor="client-province">Province</FieldLabel>
-          <Input id="client-province" name="province" defaultValue="QC" required />
+          <Input id="client-province" name="province" maxLength={3} />
         </Field>
         <Field>
           <FieldLabel htmlFor="client-postal">Code postal</FieldLabel>
           <Input id="client-postal" name="postalCode" />
         </Field>
+        <Field className="sm:col-span-2">
+          <FieldLabel htmlFor="client-notes">Notes</FieldLabel>
+          <Textarea id="client-notes" name="notes" />
+        </Field>
       </div>
-    </DialogForm>
+    </MutationDialog>
   );
 }
 
 export function NewJobDialog({ clients, workers }: { clients: Client[]; workers: Worker[] }) {
   const properties = clients.flatMap((client) =>
-    client.properties.map((property) => ({ ...property, clientName: client.name }))
+    client.properties.map((property) => ({ ...property, clientName: client.name ?? `Client #${client.clientNumber}` }))
   );
 
   return (
-    <DialogForm
+    <MutationDialog
       title="Nouveau travail"
       description="Planifiez l’intervention; le calendrier Google sera synchronisé ensuite."
       action={createJobAction}
@@ -150,7 +95,7 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
             <NativeSelectOption value="">Choisir une propriété</NativeSelectOption>
             {properties.map((property) => (
               <NativeSelectOption key={property.id} value={property.id}>
-                {property.clientName} — {property.address}
+                {property.clientName} — {property.address ?? "Adresse à confirmer"}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -208,13 +153,13 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
           <Textarea id="job-notes" name="notes" />
         </Field>
       </div>
-    </DialogForm>
+    </MutationDialog>
   );
 }
 
 export function NewExpenseDialog({ jobs }: { jobs: Job[] }) {
   return (
-    <DialogForm
+    <MutationDialog
       title="Nouvelle dépense"
       description="Ajoutez une dépense d’entreprise et ses taxes."
       action={createExpenseAction}
@@ -271,13 +216,13 @@ export function NewExpenseDialog({ jobs }: { jobs: Job[] }) {
           <Textarea id="expense-notes" name="notes" />
         </Field>
       </div>
-    </DialogForm>
+    </MutationDialog>
   );
 }
 
 export function NewVisitDialog() {
   return (
-    <DialogForm
+    <MutationDialog
       title="Nouvelle rue visitée"
       description="Consignez une tournée de prospection porte-à-porte."
       action={createVisitAction}
@@ -306,6 +251,7 @@ export function NewVisitDialog() {
           <NativeSelect id="visit-outcome" name="outcome" className="w-full" defaultValue="Rue visitée">
             <NativeSelectOption value="Rue visitée">Rue visitée</NativeSelectOption>
             <NativeSelectOption value="Clients obtenus">Clients obtenus</NativeSelectOption>
+            <NativeSelectOption value="Clients obtenus et à revenir">Clients obtenus et à revenir</NativeSelectOption>
             <NativeSelectOption value="À revisiter">À revisiter</NativeSelectOption>
             <NativeSelectOption value="Aucun intérêt">Aucun intérêt</NativeSelectOption>
           </NativeSelect>
@@ -319,6 +265,6 @@ export function NewVisitDialog() {
           <Textarea id="visit-notes" name="notes" />
         </Field>
       </div>
-    </DialogForm>
+    </MutationDialog>
   );
 }

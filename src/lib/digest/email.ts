@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { formatInTimeZone } from "date-fns-tz";
 import { QUEBEC_TIMEZONE } from "@/lib/digest/time";
 
-type DigestJob = { starts_at: string; service_subtotal: number | string; followup_date?: string | null; clients: { name: string } | null; properties: { address: string } | null };
+type DigestJob = { starts_at: string; service_subtotal: number | string; followup_date?: string | null; clients: { name: string | null } | null; properties: { address: string | null } | null };
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character] ?? character);
