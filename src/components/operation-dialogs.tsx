@@ -13,6 +13,7 @@ import { ExpenseAmountFields } from "@/components/expense-amount-fields";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MutationDialog } from "@/components/mutation-dialog";
+import { MapPickerLazy } from "@/components/map-picker-lazy";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Business, Client, Job, Worker } from "@/types/domain";
@@ -62,6 +63,11 @@ export function NewClientDialog({ nextClientNumber }: { nextClientNumber: number
         <Field>
           <FieldLabel htmlFor="client-postal">Code postal</FieldLabel>
           <Input id="client-postal" name="postalCode" />
+        </Field>
+        <Field className="sm:col-span-2">
+          <FieldLabel>Maison sur la carte (facultatif)</FieldLabel>
+          <FieldDescription>Placez le marqueur pour afficher cette propriété comme maison cliente dans Prospection.</FieldDescription>
+          <MapPickerLazy name="propertyCoordinates" mode="point" />
         </Field>
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor="client-notes">Notes</FieldLabel>
@@ -243,6 +249,14 @@ export function NewVisitDialog() {
           <Input id="visit-city" name="city" defaultValue="Gatineau" required />
         </Field>
         <Field>
+          <FieldLabel htmlFor="visit-start-address">Première maison (facultative)</FieldLabel>
+          <Input id="visit-start-address" name="startAddress" placeholder="Ex. 120 rue de Cannes" />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="visit-end-address">Dernière maison (facultative)</FieldLabel>
+          <Input id="visit-end-address" name="endAddress" placeholder="Ex. 184 rue de Cannes" />
+        </Field>
+        <Field>
           <FieldLabel htmlFor="visit-date">Date de visite (facultative)</FieldLabel>
           <Input id="visit-date" name="visitedAt" type="date" />
         </Field>
@@ -259,6 +273,11 @@ export function NewVisitDialog() {
         <Field>
           <FieldLabel htmlFor="visit-revisit">Date de retour (facultative)</FieldLabel>
           <Input id="visit-revisit" name="revisitDate" type="date" />
+        </Field>
+        <Field className="sm:col-span-2">
+          <FieldLabel>Portion visitée sur la carte</FieldLabel>
+          <FieldDescription>Obligatoire lorsque vous indiquez une première et une dernière maison.</FieldDescription>
+          <MapPickerLazy name="routeCoordinates" mode="line" />
         </Field>
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor="visit-notes">Notes</FieldLabel>

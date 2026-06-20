@@ -9,6 +9,7 @@ import { isDemoMode } from "@/lib/env";
 import { requireBusinessId, requireOwnerBusinessId } from "@/lib/auth";
 import { syncJobToGoogle } from "@/lib/google/sync";
 import { resolveJobSchedule } from "@/lib/job-schedule";
+import { parseMapCoordinates } from "@/lib/map-geometry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -95,6 +96,11 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
     return { ok: false, message: "Vérifiez les renseignements du client." };
   }
 
+  const propertyCoordinates = parseMapCoordinates(formValue(formData, "propertyCoordinates"));
+  if (!propertyCoordinates.ok || (propertyCoordinates.coordinates?.length ?? 0) > 1) {
+    return { ok: false, message: "L’emplacement de la propriété est invalide." };
+  }
+
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) {
     return { ok: true, message: "Client validé en mode démonstration." };
@@ -121,7 +127,8 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
     return { ok: false, message: clientError?.message ?? "Création impossible." };
   }
 
-  const hasProperty = Boolean(parsed.data.address || parsed.data.city || parsed.data.province || parsed.data.postalCode);
+  const propertyPoint = propertyCoordinates.coordinates?.[0] ?? null;
+  const hasProperty = Boolean(parsed.data.address || parsed.data.city || parsed.data.province || parsed.data.postalCode || propertyPoint);
   if (hasProperty) {
     const { error: propertyError } = await supabase.from("properties").insert({
       business_id: businessId,
@@ -130,6 +137,8 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
       city: parsed.data.city || null,
       province: parsed.data.province || null,
       postal_code: parsed.data.postalCode || null,
+      latitude: propertyPoint?.[0] ?? null,
+      longitude: propertyPoint?.[1] ?? null,
     });
 
     if (propertyError) {
@@ -172,6 +181,10 @@ export async function updateClientAction(formData: FormData): Promise<ActionResu
     });
 
   if (!parsed.success) return { ok: false, message: "Vérifiez les renseignements du client." };
+  const propertyCoordinates = parseMapCoordinates(formValue(formData, "propertyCoordinates"));
+  if (!propertyCoordinates.ok || (propertyCoordinates.coordinates?.length ?? 0) > 1) {
+    return { ok: false, message: "L’emplacement de la propriété est invalide." };
+  }
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) return { ok: true, message: "Client modifié en mode démonstration." };
   const supabase = await createSupabaseServerClient();
@@ -194,11 +207,14 @@ export async function updateClientAction(formData: FormData): Promise<ActionResu
     return { ok: false, message: clientError.message };
   }
 
+  const propertyPoint = propertyCoordinates.coordinates?.[0] ?? null;
   const propertyValues = {
     address: parsed.data.address || null,
     city: parsed.data.city || null,
     province: parsed.data.province || null,
     postal_code: parsed.data.postalCode || null,
+    latitude: propertyPoint?.[0] ?? null,
+    longitude: propertyPoint?.[1] ?? null,
   };
   if (parsed.data.propertyId) {
     const { error } = await supabase
@@ -791,6 +807,8 @@ export async function createVisitAction(formData: FormData): Promise<ActionResul
       visitedAt: z.string().trim().max(20),
       outcome: z.enum(["Rue visitée", "Clients obtenus", "Clients obtenus et à revenir", "À revisiter", "Aucun intérêt"]),
       revisitDate: z.string().trim().max(20),
+      startAddress: z.string().trim().max(300),
+      endAddress: z.string().trim().max(300),
       notes: z.string().trim().max(2000),
     })
     .safeParse({
@@ -799,11 +817,22 @@ export async function createVisitAction(formData: FormData): Promise<ActionResul
       visitedAt: formValue(formData, "visitedAt"),
       outcome: formValue(formData, "outcome"),
       revisitDate: formValue(formData, "revisitDate"),
+      startAddress: formValue(formData, "startAddress"),
+      endAddress: formValue(formData, "endAddress"),
       notes: formValue(formData, "notes"),
     });
 
   if (!parsed.success) {
     return { ok: false, message: "Vérifiez les renseignements de la visite." };
+  }
+
+  const route = parseMapCoordinates(formValue(formData, "routeCoordinates"), 2);
+  if (!route.ok) return { ok: false, message: "Le tracé sur la carte est invalide." };
+  if (Boolean(parsed.data.startAddress) !== Boolean(parsed.data.endAddress)) {
+    return { ok: false, message: "Indiquez l’adresse de départ et l’adresse de fin, ou laissez les deux vides." };
+  }
+  if (parsed.data.startAddress && !route.coordinates) {
+    return { ok: false, message: "Tracez la portion visitée sur la carte avant d’enregistrer." };
   }
 
   const { businessId, auth } = await requireBusinessId();
@@ -820,6 +849,9 @@ export async function createVisitAction(formData: FormData): Promise<ActionResul
     visited_at: parsed.data.visitedAt || null,
     outcome: parsed.data.outcome,
     revisit_date: parsed.data.revisitDate || null,
+    start_address: parsed.data.startAddress || null,
+    end_address: parsed.data.endAddress || null,
+    route_coordinates: route.coordinates,
     notes: parsed.data.notes || null,
   });
 
@@ -837,6 +869,8 @@ export async function updateVisitAction(formData: FormData): Promise<ActionResul
       visitedAt: z.string().trim().max(20),
       outcome: z.enum(["Rue visitée", "Clients obtenus", "Clients obtenus et à revenir", "À revisiter", "Aucun intérêt"]),
       revisitDate: z.string().trim().max(20),
+      startAddress: z.string().trim().max(300),
+      endAddress: z.string().trim().max(300),
       notes: z.string().trim().max(2000),
     })
     .safeParse({
@@ -846,9 +880,19 @@ export async function updateVisitAction(formData: FormData): Promise<ActionResul
       visitedAt: formValue(formData, "visitedAt"),
       outcome: formValue(formData, "outcome"),
       revisitDate: formValue(formData, "revisitDate"),
+      startAddress: formValue(formData, "startAddress"),
+      endAddress: formValue(formData, "endAddress"),
       notes: formValue(formData, "notes"),
     });
   if (!parsed.success) return { ok: false, message: "Vérifiez les renseignements de la visite." };
+  const route = parseMapCoordinates(formValue(formData, "routeCoordinates"), 2);
+  if (!route.ok) return { ok: false, message: "Le tracé sur la carte est invalide." };
+  if (Boolean(parsed.data.startAddress) !== Boolean(parsed.data.endAddress)) {
+    return { ok: false, message: "Indiquez l’adresse de départ et l’adresse de fin, ou laissez les deux vides." };
+  }
+  if (parsed.data.startAddress && !route.coordinates) {
+    return { ok: false, message: "Tracez la portion visitée sur la carte avant d’enregistrer." };
+  }
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) return { ok: true, message: "Visite modifiée en mode démonstration." };
   const supabase = await createSupabaseServerClient();
@@ -861,6 +905,9 @@ export async function updateVisitAction(formData: FormData): Promise<ActionResul
       visited_at: parsed.data.visitedAt || null,
       outcome: parsed.data.outcome,
       revisit_date: parsed.data.revisitDate || null,
+      start_address: parsed.data.startAddress || null,
+      end_address: parsed.data.endAddress || null,
+      route_coordinates: route.coordinates,
       notes: parsed.data.notes || null,
     })
     .eq("business_id", businessId)

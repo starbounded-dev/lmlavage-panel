@@ -4,8 +4,9 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import { deleteClientAction, updateClientAction } from "@/app/actions";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { MutationDialog } from "@/components/mutation-dialog";
+import { MapPickerLazy } from "@/components/map-picker-lazy";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Client } from "@/types/domain";
@@ -61,6 +62,15 @@ export function ClientActions({ client }: { client: Client }) {
           <Field>
             <FieldLabel htmlFor={`client-postal-${client.id}`}>Code postal</FieldLabel>
             <Input id={`client-postal-${client.id}`} name="postalCode" defaultValue={property?.postalCode ?? ""} />
+          </Field>
+          <Field className="sm:col-span-2">
+            <FieldLabel>Maison sur la carte (facultatif)</FieldLabel>
+            <FieldDescription>Le marqueur vert sera visible dans la carte de prospection.</FieldDescription>
+            <MapPickerLazy
+              name="propertyCoordinates"
+              mode="point"
+              initialCoordinates={property?.latitude != null && property.longitude != null ? [[property.latitude, property.longitude]] : []}
+            />
           </Field>
           <Field className="sm:col-span-2">
             <FieldLabel htmlFor={`client-notes-${client.id}`}>Notes</FieldLabel>

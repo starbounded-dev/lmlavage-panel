@@ -4,7 +4,7 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/tableau-de-bord");
   await expect(page.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
-  await expect(page.getByText("Total encaissé")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Total encaissé")).toBeVisible();
 
   const themeToggle = page.locator('button[aria-label="Changer le thème clair ou sombre"]:visible');
   await expect(themeToggle).toHaveCount(1);
@@ -16,6 +16,7 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await page.getByRole("button", { name: "Nouveau client" }).click();
   await expect(page.getByLabel("Numéro client")).toBeVisible();
   await expect(page.getByLabel("Nom (facultatif)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Carte pour placer la maison cliente")).toBeVisible();
   await page.getByRole("button", { name: "Annuler" }).click();
   await expect(page.getByRole("button", { name: "Modifier", exact: true }).first()).toBeVisible();
 
@@ -34,7 +35,13 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await expect(page.getByRole("button", { name: /Supprimer le travail de/ }).first()).toBeVisible();
 
   await page.goto("/prospection");
+  await expect(page.getByText("Carte de Gatineau", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Carte des secteurs prospectés à Gatineau")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Portion" })).toBeVisible();
   await page.getByRole("button", { name: "Ajouter une rue" }).click();
+  await expect(page.getByLabel("Première maison (facultative)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Dernière maison (facultative)")).not.toHaveAttribute("required");
+  await expect(page.getByLabel("Carte pour tracer la portion visitée")).toBeVisible();
   await expect(page.getByLabel("Date de visite (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Date de retour (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Résultat").getByRole("option", { name: "Clients obtenus et à revenir", exact: true })).toBeAttached();

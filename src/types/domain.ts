@@ -4,6 +4,7 @@ export type ServiceScope = "inside" | "outside" | "both";
 export type SyncStatus = "not_connected" | "pending" | "synced" | "error";
 export type AllocationBucketType = "person" | "reserve";
 export type SalesSplitProfile = "standard" | "po_sale";
+export type MapCoordinate = [latitude: number, longitude: number];
 
 export type Business = {
   id: string;
@@ -25,6 +26,8 @@ export type Property = {
   city: string | null;
   province: string | null;
   postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type Client = {
@@ -97,6 +100,9 @@ export type CanvassingVisit = {
   outcome: string;
   notes: string | null;
   revisitDate: string | null;
+  startAddress: string | null;
+  endAddress: string | null;
+  routeCoordinates: MapCoordinate[];
 };
 
 export type AllocationBucket = {

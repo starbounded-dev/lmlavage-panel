@@ -1,4 +1,12 @@
-import type { AppData } from "@/types/domain";
+import type { AppData, MapCoordinate } from "@/types/domain";
+
+const demoProspectingRoutes: MapCoordinate[][] = [
+  [[45.4762, -75.7048], [45.4768, -75.7034], [45.4775, -75.7018]],
+  [[45.4749, -75.7072], [45.4752, -75.7047], [45.4755, -75.7021]],
+  [[45.4738, -75.7008], [45.4746, -75.7005], [45.4756, -75.7004]],
+  [[45.4779, -75.6993], [45.4772, -75.6978], [45.4763, -75.6965]],
+  [[45.4736, -75.7044], [45.4728, -75.7031], [45.4724, -75.7012]],
+];
 
 export const demoData: AppData = {
   business: {
@@ -30,6 +38,8 @@ export const demoData: AppData = {
           city: "Gatineau",
           province: "QC",
           postalCode: null,
+          latitude: 45.4767,
+          longitude: -75.7031,
         },
       ],
     },
@@ -49,6 +59,8 @@ export const demoData: AppData = {
           city: "Gatineau",
           province: "QC",
           postalCode: null,
+          latitude: 45.4753,
+          longitude: -75.7027,
         },
       ],
     },
@@ -68,6 +80,8 @@ export const demoData: AppData = {
           city: "Gatineau",
           province: "QC",
           postalCode: null,
+          latitude: 45.4773,
+          longitude: -75.7019,
         },
       ],
     },
@@ -87,6 +101,8 @@ export const demoData: AppData = {
           city: "Gatineau",
           province: "QC",
           postalCode: null,
+          latitude: 45.4746,
+          longitude: -75.7005,
         },
       ],
     },
@@ -106,6 +122,8 @@ export const demoData: AppData = {
           city: "Gatineau",
           province: "QC",
           postalCode: null,
+          latitude: 45.4731,
+          longitude: -75.7028,
         },
       ],
     },
@@ -391,6 +409,9 @@ export const demoData: AppData = {
     outcome: index < 2 ? "Clients obtenus" : "Rue visitée",
     notes: null,
     revisitDate: `2027-05-${String(20 + index).padStart(2, "0")}`,
+    startAddress: `${100 + index * 20} ${street}`,
+    endAddress: `${118 + index * 20} ${street}`,
+    routeCoordinates: demoProspectingRoutes[index],
   })),
   allocationBuckets: [
     { id: "bucket-alexis", name: "Alexis", type: "person", percentage: 40, poSalePercentage: 35, amount: 240 },

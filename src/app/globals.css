@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "leaflet/dist/leaflet.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -204,5 +205,25 @@
     border-color: var(--destructive);
     background: color-mix(in oklab, var(--destructive) 15%, var(--card));
     color: var(--destructive);
+  }
+
+  .prospecting-map {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+  }
+
+  .prospecting-map .leaflet-container {
+    background: var(--muted);
+    font-family: inherit;
+  }
+
+  .prospecting-map .leaflet-control-attribution {
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+    color: var(--muted-foreground);
+  }
+
+  .dark .prospecting-map .leaflet-tile-pane {
+    filter: brightness(0.72) contrast(1.12) saturate(0.72);
   }
 }

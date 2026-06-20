@@ -4,8 +4,9 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import { deleteVisitAction, updateVisitAction } from "@/app/actions";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { MutationDialog } from "@/components/mutation-dialog";
+import { MapPickerLazy } from "@/components/map-picker-lazy";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,14 @@ export function VisitActions({ visit }: { visit: CanvassingVisit }) {
             <Input id={`visit-city-${visit.id}`} name="city" defaultValue={visit.city} required />
           </Field>
           <Field>
+            <FieldLabel htmlFor={`visit-start-${visit.id}`}>Première maison (facultative)</FieldLabel>
+            <Input id={`visit-start-${visit.id}`} name="startAddress" defaultValue={visit.startAddress ?? ""} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`visit-end-${visit.id}`}>Dernière maison (facultative)</FieldLabel>
+            <Input id={`visit-end-${visit.id}`} name="endAddress" defaultValue={visit.endAddress ?? ""} />
+          </Field>
+          <Field>
             <FieldLabel htmlFor={`visit-date-${visit.id}`}>Date de visite (facultative)</FieldLabel>
             <Input id={`visit-date-${visit.id}`} name="visitedAt" type="date" defaultValue={visit.visitedAt ?? ""} />
           </Field>
@@ -51,6 +60,11 @@ export function VisitActions({ visit }: { visit: CanvassingVisit }) {
           <Field>
             <FieldLabel htmlFor={`visit-revisit-${visit.id}`}>Date de retour (facultative)</FieldLabel>
             <Input id={`visit-revisit-${visit.id}`} name="revisitDate" type="date" defaultValue={visit.revisitDate ?? ""} />
+          </Field>
+          <Field className="sm:col-span-2">
+            <FieldLabel>Portion visitée sur la carte</FieldLabel>
+            <FieldDescription>Ajoutez des points pour suivre les courbes et les intersections de la rue.</FieldDescription>
+            <MapPickerLazy name="routeCoordinates" mode="line" initialCoordinates={visit.routeCoordinates} />
           </Field>
           <Field className="sm:col-span-2">
             <FieldLabel htmlFor={`visit-notes-${visit.id}`}>Notes</FieldLabel>

@@ -29,6 +29,8 @@ select public.provision_lm_owner('UUID_DU_COMPTE', 'courriel@exemple.ca');
 6. Vérifiez le domaine d’envoi Resend et fournissez `RESEND_FROM_EMAIL`.
 7. Déployez sur Vercel. Les deux déclencheurs UTC dans `vercel.json` couvrent l’heure normale et avancée; l’endpoint envoie uniquement lorsqu’il est 8 h à Gatineau.
 
+La carte de prospection utilise des tuiles OpenStreetMap. `NEXT_PUBLIC_MAP_TILE_URL` et `NEXT_PUBLIC_MAP_ATTRIBUTION` permettent de remplacer le fournisseur sans modifier le code. Les adresses ne sont pas envoyées à un service de géocodage : les portions visitées et les maisons clientes sont placées manuellement sur la carte, puis leurs coordonnées sont conservées dans Supabase.
+
 L’import Excel se trouve dans **Paramètres → Intégrations**. Il affiche un aperçu, utilise l’empreinte SHA-256 du classeur et effectue l’import dans une transaction Supabase.
 
 ## Vérification

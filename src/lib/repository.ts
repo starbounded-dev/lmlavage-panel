@@ -2,6 +2,7 @@ import "server-only";
 
 import { demoData } from "@/lib/demo-data";
 import { isDemoMode } from "@/lib/env";
+import { mapCoordinateFromDatabase, mapRouteFromDatabase } from "@/lib/map-geometry";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireBusinessId } from "@/lib/auth";
 import type {
@@ -143,6 +144,8 @@ export async function getAppData(): Promise<AppData> {
     city: nullableText(row.city),
     province: nullableText(row.province),
     postalCode: nullableText(row.postal_code),
+    latitude: mapCoordinateFromDatabase(row.latitude, row.longitude)?.[0] ?? null,
+    longitude: mapCoordinateFromDatabase(row.latitude, row.longitude)?.[1] ?? null,
   }));
 
   const clients: Client[] = rows(clientsResult.data).map((row) => ({
@@ -228,6 +231,9 @@ export async function getAppData(): Promise<AppData> {
     outcome: text(row.outcome),
     notes: nullableText(row.notes),
     revisitDate: nullableText(row.revisit_date),
+    startAddress: nullableText(row.start_address),
+    endAddress: nullableText(row.end_address),
+    routeCoordinates: mapRouteFromDatabase(row.route_coordinates),
   }));
 
   const allocationRows = rows(allocationsResult.data);
