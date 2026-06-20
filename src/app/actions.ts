@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fromZonedTime } from "date-fns-tz";
 import { z } from "zod";
-import { calculateTaxes } from "@/lib/calculations";
+import { calculateIncludedTaxes, calculateTaxes, roundMoney } from "@/lib/calculations";
 import { isDemoMode } from "@/lib/env";
 import { requireBusinessId, requireOwnerBusinessId } from "@/lib/auth";
 import { syncJobToGoogle } from "@/lib/google/sync";
@@ -19,6 +19,16 @@ const requiredText = z.string().trim().min(1).max(200);
 function formValue(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
+}
+
+function calculateExpenseAmounts(
+  mode: "subtotal" | "total",
+  amount: number,
+  settings: { gstEnabled: boolean; qstEnabled: boolean; gstRate: number; qstRate: number }
+) {
+  if (mode === "total") return calculateIncludedTaxes(amount, settings);
+  const subtotal = roundMoney(amount);
+  return { subtotal, ...calculateTaxes(subtotal, settings) };
 }
 
 export async function signInAction(formData: FormData) {
@@ -578,9 +588,8 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
       date: requiredText,
       vendor: requiredText,
       category: requiredText,
-      subtotal: z.coerce.number().min(0).max(1_000_000),
-      gstAmount: z.coerce.number().min(0).max(1_000_000),
-      qstAmount: z.coerce.number().min(0).max(1_000_000),
+      amountMode: z.enum(["subtotal", "total"]),
+      amount: z.coerce.number().min(0).max(1_000_000),
       paymentMethod: z.string().trim().max(80),
       notes: z.string().trim().max(2000),
       jobId: z.string().trim().max(100),
@@ -589,9 +598,8 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
       date: formValue(formData, "date"),
       vendor: formValue(formData, "vendor"),
       category: formValue(formData, "category"),
-      subtotal: formValue(formData, "subtotal"),
-      gstAmount: formValue(formData, "gstAmount") || "0",
-      qstAmount: formValue(formData, "qstAmount") || "0",
+      amountMode: formValue(formData, "amountMode"),
+      amount: formValue(formData, "amount"),
       paymentMethod: formValue(formData, "paymentMethod"),
       notes: formValue(formData, "notes"),
       jobId: formValue(formData, "jobId"),
@@ -614,16 +622,31 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
-  const total = parsed.data.subtotal + parsed.data.gstAmount + parsed.data.qstAmount;
+  const { data: business, error: businessError } = await supabase
+    .from("businesses")
+    .select("gst_enabled,qst_enabled,gst_rate,qst_rate")
+    .eq("id", businessId)
+    .single();
+  if (businessError || !business) return { ok: false, message: "Les paramètres de taxes sont introuvables." };
+  if (parsed.data.jobId) {
+    const { data: job } = await supabase.from("jobs").select("id").eq("business_id", businessId).eq("id", parsed.data.jobId).maybeSingle();
+    if (!job) return { ok: false, message: "Le travail associé est introuvable." };
+  }
+  const amounts = calculateExpenseAmounts(parsed.data.amountMode, parsed.data.amount, {
+    gstEnabled: business.gst_enabled,
+    qstEnabled: business.qst_enabled,
+    gstRate: Number(business.gst_rate),
+    qstRate: Number(business.qst_rate),
+  });
   const { data: expense, error } = await supabase.from("expenses").insert({
     business_id: businessId,
     expense_date: parsed.data.date,
     vendor: parsed.data.vendor,
     category: parsed.data.category,
-    subtotal: parsed.data.subtotal,
-    gst_amount: parsed.data.gstAmount,
-    qst_amount: parsed.data.qstAmount,
-    total,
+    subtotal: amounts.subtotal,
+    gst_amount: amounts.gst,
+    qst_amount: amounts.qst,
+    total: amounts.total,
     payment_method: parsed.data.paymentMethod || null,
     notes: parsed.data.notes || null,
     job_id: parsed.data.jobId || null,
@@ -649,9 +672,8 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
       date: requiredText,
       vendor: requiredText,
       category: requiredText,
-      subtotal: z.coerce.number().min(0).max(1_000_000),
-      gstAmount: z.coerce.number().min(0).max(1_000_000),
-      qstAmount: z.coerce.number().min(0).max(1_000_000),
+      amountMode: z.enum(["subtotal", "total"]),
+      amount: z.coerce.number().min(0).max(1_000_000),
       paymentMethod: z.string().trim().max(80),
       notes: z.string().trim().max(2000),
       jobId: z.string().trim().max(200),
@@ -661,9 +683,8 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
       date: formValue(formData, "date"),
       vendor: formValue(formData, "vendor"),
       category: formValue(formData, "category"),
-      subtotal: formValue(formData, "subtotal"),
-      gstAmount: formValue(formData, "gstAmount") || "0",
-      qstAmount: formValue(formData, "qstAmount") || "0",
+      amountMode: formValue(formData, "amountMode"),
+      amount: formValue(formData, "amount"),
       paymentMethod: formValue(formData, "paymentMethod"),
       notes: formValue(formData, "notes"),
       jobId: formValue(formData, "jobId"),
@@ -685,13 +706,12 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
     const { data: job } = await supabase.from("jobs").select("id").eq("business_id", businessId).eq("id", parsed.data.jobId).maybeSingle();
     if (!job) return { ok: false, message: "Le travail associé est introuvable." };
   }
-  const { data: current, error: currentError } = await supabase
-    .from("expenses")
-    .select("receipt_path")
-    .eq("business_id", businessId)
-    .eq("id", parsed.data.expenseId)
-    .single();
+  const [{ data: current, error: currentError }, { data: business, error: businessError }] = await Promise.all([
+    supabase.from("expenses").select("receipt_path").eq("business_id", businessId).eq("id", parsed.data.expenseId).single(),
+    supabase.from("businesses").select("gst_enabled,qst_enabled,gst_rate,qst_rate").eq("id", businessId).single(),
+  ]);
   if (currentError || !current) return { ok: false, message: "Dépense introuvable." };
+  if (businessError || !business) return { ok: false, message: "Les paramètres de taxes sont introuvables." };
 
   let newReceiptPath: string | null = current.receipt_path;
   if (receipt instanceof File && receipt.size > 0) {
@@ -703,17 +723,22 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
     if (uploadError) return { ok: false, message: `Le nouveau reçu n’a pas pu être téléversé (${uploadError.message}).` };
   }
 
-  const total = parsed.data.subtotal + parsed.data.gstAmount + parsed.data.qstAmount;
+  const amounts = calculateExpenseAmounts(parsed.data.amountMode, parsed.data.amount, {
+    gstEnabled: business.gst_enabled,
+    qstEnabled: business.qst_enabled,
+    gstRate: Number(business.gst_rate),
+    qstRate: Number(business.qst_rate),
+  });
   const { error } = await supabase
     .from("expenses")
     .update({
       expense_date: parsed.data.date,
       vendor: parsed.data.vendor,
       category: parsed.data.category,
-      subtotal: parsed.data.subtotal,
-      gst_amount: parsed.data.gstAmount,
-      qst_amount: parsed.data.qstAmount,
-      total,
+      subtotal: amounts.subtotal,
+      gst_amount: amounts.gst,
+      qst_amount: amounts.qst,
+      total: amounts.total,
       payment_method: parsed.data.paymentMethod || null,
       notes: parsed.data.notes || null,
       job_id: parsed.data.jobId || null,

@@ -35,6 +35,12 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
 
   await page.goto("/depenses");
   await expect(page.getByRole("button", { name: /Modifier la dépense/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Nouvelle dépense" }).click();
+  await expect(page.getByLabel("Type de montant").getByRole("option", { name: "Sous-total avant taxes", exact: true })).toBeAttached();
+  await expect(page.getByLabel("Type de montant").getByRole("option", { name: "Total taxes incluses", exact: true })).toBeAttached();
+  await page.getByLabel("Type de montant").selectOption("total");
+  await expect(page.getByLabel("Total payé")).toBeVisible();
+  await page.getByRole("button", { name: "Annuler" }).click();
 
   await page.goto("/repartition");
   await expect(page.getByRole("heading", { name: "Répartition" })).toBeVisible();

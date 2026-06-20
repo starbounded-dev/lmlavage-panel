@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
   const total = data.expenses.reduce((sum, expense) => sum + expense.total, 0);
   return (
     <>
-      <PageHeader title="Dépenses" description="Dépenses d’entreprise, taxes et reçus justificatifs." action={<NewExpenseDialog jobs={data.jobs} />} />
+      <PageHeader title="Dépenses" description="Dépenses d’entreprise, taxes et reçus justificatifs." action={<NewExpenseDialog jobs={data.jobs} business={data.business} />} />
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
         <Card><CardHeader><CardDescription>Total dépensé</CardDescription><CardTitle className="metric-number text-2xl">{formatCad(total)}</CardTitle></CardHeader></Card>
         <Card><CardHeader><CardDescription>Écritures</CardDescription><CardTitle className="metric-number text-2xl">{data.expenses.length}</CardTitle></CardHeader></Card>
@@ -33,7 +33,7 @@ export default async function ExpensesPage() {
                   <TableCell>{formatDate(expense.date)}</TableCell><TableCell className="font-medium">{expense.vendor}</TableCell><TableCell><Badge variant="secondary">{expense.category}</Badge></TableCell>
                   <TableCell>{expense.receiptPath ? <PaperclipIcon className="size-4 text-primary" /> : <span className="text-xs text-muted-foreground">Absent</span>}</TableCell>
                   <TableCell className="text-right font-mono">{formatCad(expense.subtotal)}</TableCell><TableCell className="text-right font-mono">{formatCad(expense.gstAmount + expense.qstAmount)}</TableCell><TableCell className="text-right font-mono font-medium">{formatCad(expense.total)}</TableCell>
-                  <TableCell><ExpenseActions expense={expense} jobs={data.jobs} /></TableCell>
+                  <TableCell><ExpenseActions expense={expense} jobs={data.jobs} business={data.business} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>

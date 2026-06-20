@@ -2,15 +2,16 @@
 
 import { PencilIcon } from "lucide-react";
 import { updateExpenseAction } from "@/app/actions";
+import { ExpenseAmountFields } from "@/components/expense-amount-fields";
 import { MutationDialog } from "@/components/mutation-dialog";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import type { Expense, Job } from "@/types/domain";
+import type { Business, Expense, Job } from "@/types/domain";
 
-export function ExpenseActions({ expense, jobs }: { expense: Expense; jobs: Job[] }) {
+export function ExpenseActions({ expense, jobs, business }: { expense: Expense; jobs: Job[]; business: Business }) {
   return (
     <MutationDialog
       title={`Modifier ${expense.vendor}`}
@@ -52,18 +53,7 @@ export function ExpenseActions({ expense, jobs }: { expense: Expense; jobs: Job[
           <Input id={`expense-receipt-${expense.id}`} name="receipt" type="file" accept="image/jpeg,image/png,application/pdf" />
           <FieldDescription>{expense.receiptPath ? "Laisser vide pour conserver le reçu actuel." : "JPG, PNG ou PDF, maximum 10 Mo."}</FieldDescription>
         </Field>
-        <Field>
-          <FieldLabel htmlFor={`expense-subtotal-${expense.id}`}>Sous-total</FieldLabel>
-          <Input id={`expense-subtotal-${expense.id}`} name="subtotal" type="number" min="0" step="0.01" defaultValue={expense.subtotal} required />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`expense-gst-${expense.id}`}>TPS</FieldLabel>
-          <Input id={`expense-gst-${expense.id}`} name="gstAmount" type="number" min="0" step="0.01" defaultValue={expense.gstAmount} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`expense-qst-${expense.id}`}>TVQ</FieldLabel>
-          <Input id={`expense-qst-${expense.id}`} name="qstAmount" type="number" min="0" step="0.01" defaultValue={expense.qstAmount} />
-        </Field>
+        <ExpenseAmountFields idPrefix={`expense-${expense.id}`} business={business} initialSubtotal={expense.subtotal} />
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor={`expense-notes-${expense.id}`}>Notes</FieldLabel>
           <Textarea id={`expense-notes-${expense.id}`} name="notes" defaultValue={expense.notes ?? ""} />

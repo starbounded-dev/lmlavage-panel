@@ -9,12 +9,13 @@ import {
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ExpenseAmountFields } from "@/components/expense-amount-fields";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { MutationDialog } from "@/components/mutation-dialog";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import type { Client, Job, Worker } from "@/types/domain";
+import type { Business, Client, Job, Worker } from "@/types/domain";
 
 export function NewClientDialog({ nextClientNumber }: { nextClientNumber: number }) {
   return (
@@ -157,7 +158,7 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
   );
 }
 
-export function NewExpenseDialog({ jobs }: { jobs: Job[] }) {
+export function NewExpenseDialog({ jobs, business }: { jobs: Job[]; business: Business }) {
   return (
     <MutationDialog
       title="Nouvelle dépense"
@@ -199,18 +200,7 @@ export function NewExpenseDialog({ jobs }: { jobs: Job[] }) {
           <FieldLabel htmlFor="expense-receipt">Reçu (facultatif)</FieldLabel>
           <Input id="expense-receipt" name="receipt" type="file" accept="image/jpeg,image/png,application/pdf" />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="expense-subtotal">Sous-total</FieldLabel>
-          <Input id="expense-subtotal" name="subtotal" type="number" min="0" step="0.01" required />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="expense-gst">TPS</FieldLabel>
-          <Input id="expense-gst" name="gstAmount" type="number" min="0" step="0.01" defaultValue="0" />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="expense-qst">TVQ</FieldLabel>
-          <Input id="expense-qst" name="qstAmount" type="number" min="0" step="0.01" defaultValue="0" />
-        </Field>
+        <ExpenseAmountFields idPrefix="new-expense" business={business} />
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor="expense-notes">Notes</FieldLabel>
           <Textarea id="expense-notes" name="notes" />

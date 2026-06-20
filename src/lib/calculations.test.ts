@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allocationPercentagesForProfile, calculateAllocationSnapshot, calculateTaxes, nextFollowupDate } from "@/lib/calculations";
+import { allocationPercentagesForProfile, calculateAllocationSnapshot, calculateIncludedTaxes, calculateTaxes, nextFollowupDate } from "@/lib/calculations";
 
 describe("calculs financiers", () => {
   it("laisse les taxes désactivées par défaut", () => {
@@ -8,6 +8,24 @@ describe("calculs financiers", () => {
 
   it("calcule les taxes du Québec au cent près", () => {
     expect(calculateTaxes(100, { gstEnabled: true, qstEnabled: true, gstRate: 0.05, qstRate: 0.09975 })).toEqual({ gst: 5, qst: 9.98, total: 114.98 });
+  });
+
+  it("extrait les taxes d’un total taxes incluses", () => {
+    expect(calculateIncludedTaxes(114.98, { gstEnabled: true, qstEnabled: true, gstRate: 0.05, qstRate: 0.09975 })).toEqual({
+      subtotal: 100,
+      gst: 5,
+      qst: 9.98,
+      total: 114.98,
+    });
+  });
+
+  it("conserve le total lorsque les taxes sont désactivées", () => {
+    expect(calculateIncludedTaxes(42.35, { gstEnabled: false, qstEnabled: false, gstRate: 0.05, qstRate: 0.09975 })).toEqual({
+      subtotal: 42.35,
+      gst: 0,
+      qst: 0,
+      total: 42.35,
+    });
   });
 
   it("refuse une répartition qui ne totalise pas 100 %", () => {

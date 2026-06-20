@@ -23,6 +23,31 @@ export function calculateTaxes(
   };
 }
 
+export function calculateIncludedTaxes(
+  total: number,
+  settings: {
+    gstEnabled: boolean;
+    qstEnabled: boolean;
+    gstRate: number;
+    qstRate: number;
+  }
+) {
+  const combinedRate =
+    (settings.gstEnabled ? settings.gstRate : 0) +
+    (settings.qstEnabled ? settings.qstRate : 0);
+
+  if (combinedRate === 0) {
+    return { subtotal: roundMoney(total), gst: 0, qst: 0, total: roundMoney(total) };
+  }
+
+  const divisor = 1 + combinedRate;
+  const gst = settings.gstEnabled ? roundMoney((total * settings.gstRate) / divisor) : 0;
+  const qst = settings.qstEnabled ? roundMoney((total * settings.qstRate) / divisor) : 0;
+  const subtotal = roundMoney(total - gst - qst);
+
+  return { subtotal, gst, qst, total: roundMoney(total) };
+}
+
 export function calculateAllocationSnapshot(
   eligibleServiceRevenue: number,
   buckets: Array<{ name: string; percentage: number }>
