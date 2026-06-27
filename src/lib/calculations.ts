@@ -1,4 +1,6 @@
 import { addMonths } from "date-fns";
+import { SALES_SPLIT_PERCENTAGES } from "@/lib/sales-splits";
+import type { SalesSplitProfile } from "@/types/domain";
 
 export function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -70,20 +72,8 @@ export function calculateAllocationSnapshot(
   });
 }
 
-export function allocationPercentagesForProfile(profile: "standard" | "po_sale") {
-  return profile === "po_sale"
-    ? [
-        { name: "Alexis", percentage: 35 },
-        { name: "Guillaume", percentage: 35 },
-        { name: "Gaz", percentage: 15 },
-        { name: "P-O", percentage: 15 },
-      ]
-    : [
-        { name: "Alexis", percentage: 40 },
-        { name: "Guillaume", percentage: 40 },
-        { name: "Gaz", percentage: 20 },
-        { name: "P-O", percentage: 0 },
-      ];
+export function allocationPercentagesForProfile(profile: SalesSplitProfile) {
+  return SALES_SPLIT_PERCENTAGES[profile] ?? SALES_SPLIT_PERCENTAGES.legacy_standard;
 }
 
 export function nextFollowupDate(completedAt: Date, months = 12) {

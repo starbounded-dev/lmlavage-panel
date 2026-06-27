@@ -3,7 +3,12 @@ export type PaymentStatus = "unpaid" | "paid";
 export type ServiceScope = "inside" | "outside" | "both";
 export type SyncStatus = "not_connected" | "pending" | "synced" | "error";
 export type AllocationBucketType = "person" | "reserve";
-export type SalesSplitProfile = "standard" | "po_sale";
+export type SalesSplitProfile =
+  | "legacy_standard"
+  | "alexis_sale"
+  | "guillaume_sale"
+  | "po_sale"
+  | "split_alexis_guillaume";
 export type MapCoordinate = [latitude: number, longitude: number];
 
 export type Business = {
@@ -74,6 +79,7 @@ export type Job = {
   workerIds: string[];
   sellerWorkerId: string | null;
   sellerName: string | null;
+  salesSplitProfile: SalesSplitProfile;
   googleSyncStatus: SyncStatus;
 };
 
@@ -87,6 +93,8 @@ export type Expense = {
   qstAmount: number;
   total: number;
   paymentMethod: string | null;
+  purchaserWorkerId: string | null;
+  purchaserName: string | null;
   notes: string | null;
   jobId: string | null;
   receiptPath: string | null;
@@ -110,7 +118,10 @@ export type AllocationBucket = {
   name: string;
   type: AllocationBucketType;
   percentage: number;
+  alexisSalePercentage: number;
+  guillaumeSalePercentage: number;
   poSalePercentage: number;
+  splitSalePercentage: number;
   amount: number;
 };
 

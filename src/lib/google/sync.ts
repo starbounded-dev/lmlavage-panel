@@ -13,6 +13,11 @@ type JoinedJob = {
   job_workers: Array<{ workers: { name: string } | null }>;
 };
 
+type JobSyncFailure = {
+  jobId: string;
+  reason: string;
+};
+
 export async function syncJobToGoogle(supabase: SupabaseClient, businessId: string, jobId: string) {
   const [{ data: connection, error: connectionError }, { data: rawJob, error: jobError }] = await Promise.all([
     supabase.from("calendar_connections").select("calendar_id,encrypted_refresh_token,token_iv,token_tag").eq("business_id", businessId).maybeSingle(),
@@ -51,7 +56,7 @@ export async function syncJobToGoogle(supabase: SupabaseClient, businessId: stri
     const requestBody = {
       summary: `LM — ${job.clients?.name ?? "Client"}`,
       location: location || undefined,
-      description: [`Service : ${scope}`, job.window_count !== null ? `Fenêtres : ${job.window_count}` : null, workers ? `Travailleurs : ${workers}` : null, job.notes].filter(Boolean).join("\n"),
+      description: [`Service : ${scope}`, job.window_count !== null ? `Fenêtres : ${job.window_count}` : null, workers ? `Nettoyé par : ${workers}` : null, job.notes].filter(Boolean).join("\n"),
       ...timing,
     };
     const result = job.google_event_id ? await calendar.events.update({ calendarId, eventId: job.google_event_id, requestBody }) : await calendar.events.insert({ calendarId, requestBody });
@@ -65,4 +70,53 @@ export async function syncJobToGoogle(supabase: SupabaseClient, businessId: stri
     ]);
     return { ok: false, reason: "provider_error" as const, error: message };
   }
+}
+
+export async function syncAllJobsToGoogle(supabase: SupabaseClient, businessId: string) {
+  const { data: jobs, error } = await supabase
+    .from("jobs")
+    .select("id")
+    .eq("business_id", businessId)
+    .order("starts_at", { ascending: true });
+
+  if (error) {
+    return {
+      ok: false,
+      total: 0,
+      synced: 0,
+      failed: 0,
+      failures: [{ jobId: "all", reason: error.message }] satisfies JobSyncFailure[],
+    };
+  }
+
+  const failures: JobSyncFailure[] = [];
+  let synced = 0;
+
+  for (const job of jobs ?? []) {
+    const jobId = String(job.id);
+    try {
+      const result = await syncJobToGoogle(supabase, businessId, jobId);
+      if (result.ok) {
+        synced += 1;
+      } else {
+        failures.push({ jobId, reason: result.reason ?? "sync_failed" });
+      }
+    } catch (syncError) {
+      const message = syncError instanceof Error ? syncError.message : "Erreur Google Calendar";
+      failures.push({ jobId, reason: message });
+      await supabase
+        .from("jobs")
+        .update({ google_sync_status: "error", google_sync_error: message })
+        .eq("business_id", businessId)
+        .eq("id", jobId);
+    }
+  }
+
+  return {
+    ok: failures.length === 0,
+    total: jobs?.length ?? 0,
+    synced,
+    failed: failures.length,
+    failures,
+  };
 }

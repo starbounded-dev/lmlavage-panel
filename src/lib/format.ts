@@ -1,5 +1,8 @@
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { format, formatDistanceToNowStrict, parse } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { frCA } from "date-fns/locale";
+
+export const QUEBEC_TIMEZONE = "America/Toronto";
 
 export const cadFormatter = new Intl.NumberFormat("fr-CA", {
   style: "currency",
@@ -15,8 +18,22 @@ export function formatCad(value: number) {
   return cadFormatter.format(value);
 }
 
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
 export function formatDate(value: string | Date, pattern = "d MMM yyyy") {
-  return format(new Date(value), pattern, { locale: frCA });
+  if (typeof value === "string" && dateOnlyPattern.test(value)) {
+    return format(parse(value, "yyyy-MM-dd", new Date()), pattern, { locale: frCA });
+  }
+
+  return formatInTimeZone(value, QUEBEC_TIMEZONE, pattern, { locale: frCA });
+}
+
+export function dateKeyInQuebec(value: string | Date) {
+  if (typeof value === "string" && dateOnlyPattern.test(value)) {
+    return value;
+  }
+
+  return formatInTimeZone(value, QUEBEC_TIMEZONE, "yyyy-MM-dd");
 }
 
 export function formatRelativeDate(value: string | Date) {

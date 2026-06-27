@@ -50,7 +50,7 @@ export function AccountManager({ accounts, workers, canManage, isDemo }: Account
       <Card>
         <CardHeader>
           <CardTitle>Comptes des travailleurs</CardTitle>
-          <CardDescription>Seul le propriétaire peut créer ou associer les comptes des travailleurs.</CardDescription>
+          <CardDescription>Tous les comptes autorisés peuvent créer ou associer les comptes des travailleurs.</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -61,7 +61,7 @@ export function AccountManager({ accounts, workers, canManage, isDemo }: Account
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><UserPlusIcon className="size-5 text-primary" />Créer un compte pour un travailleur</CardTitle>
-          <CardDescription>Le compte aura accès aux opérations, mais seul le propriétaire pourra gérer les accès.</CardDescription>
+          <CardDescription>Le compte aura accès complet au panneau, comme les autres comptes autorisés.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={(event) => submit(event, createAccountAction)}>
@@ -127,13 +127,13 @@ export function AccountManager({ accounts, workers, canManage, isDemo }: Account
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Courriel</TableHead><TableHead>Travailleur</TableHead><TableHead>Rôle</TableHead><TableHead>Créé</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Courriel</TableHead><TableHead>Travailleur</TableHead><TableHead>Accès</TableHead><TableHead>Créé</TableHead></TableRow></TableHeader>
             <TableBody>
               {accounts.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell className="font-medium">{account.email}</TableCell>
                   <TableCell>{account.workerName ?? <span className="text-muted-foreground">Non associé</span>}</TableCell>
-                  <TableCell><Badge variant={account.role === "owner" ? "default" : "secondary"}>{account.role === "owner" ? "Propriétaire" : "Administrateur"}</Badge></TableCell>
+                  <TableCell><Badge variant={account.role === "owner" ? "default" : "secondary"}>Accès complet</Badge></TableCell>
                   <TableCell>{formatDate(account.createdAt)}</TableCell>
                 </TableRow>
               ))}

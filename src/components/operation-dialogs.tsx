@@ -8,10 +8,10 @@ import {
   createVisitAction,
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ExpenseAmountFields } from "@/components/expense-amount-fields";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { JobAssignmentFields } from "@/components/job-assignment-fields";
 import { MutationDialog } from "@/components/mutation-dialog";
 import { MapPickerLazy } from "@/components/map-picker-lazy";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
@@ -128,15 +128,7 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
             <NativeSelectOption value="both">Intérieur / extérieur</NativeSelectOption>
           </NativeSelect>
         </Field>
-        <Field>
-          <FieldLabel htmlFor="job-seller">Vente faite par</FieldLabel>
-          <NativeSelect id="job-seller" name="sellerWorkerId" className="w-full" required>
-            <NativeSelectOption value="">Choisir le vendeur</NativeSelectOption>
-            {workers.filter((worker) => worker.active).map((worker) => (
-              <NativeSelectOption key={worker.id} value={worker.id}>{worker.name}</NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </Field>
+        <JobAssignmentFields workers={workers} />
         <Field>
           <FieldLabel htmlFor="job-windows">Nombre de fenêtres</FieldLabel>
           <Input id="job-windows" name="windowCount" type="number" min="0" />
@@ -148,22 +140,11 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
         <Field>
           <FieldLabel htmlFor="job-tip">Pourboire (séparé)</FieldLabel>
           <Input id="job-tip" name="tipAmount" type="number" min="0" step="0.01" defaultValue="0" />
-          <FieldDescription>Réparti également entre les travailleurs assignés.</FieldDescription>
+          <FieldDescription>Réparti également entre les personnes choisies dans “Nettoyé par”.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="job-followup">Date de retour suggérée</FieldLabel>
           <Input id="job-followup" name="followupDate" type="date" />
-        </Field>
-        <Field className="sm:col-span-2">
-          <FieldLabel>Travailleurs</FieldLabel>
-          <div className="flex flex-wrap gap-4 rounded-lg border p-3">
-            {workers.filter((worker) => worker.active).map((worker) => (
-              <label key={worker.id} className="flex items-center gap-2 text-sm">
-                <Checkbox name="workerIds" value={worker.id} />
-                {worker.name}
-              </label>
-            ))}
-          </div>
         </Field>
         <Field className="sm:col-span-2">
           <FieldLabel htmlFor="job-notes">Notes</FieldLabel>
@@ -174,7 +155,7 @@ export function NewJobDialog({ clients, workers }: { clients: Client[]; workers:
   );
 }
 
-export function NewExpenseDialog({ jobs, business }: { jobs: Job[]; business: Business }) {
+export function NewExpenseDialog({ jobs, business, workers }: { jobs: Job[]; business: Business; workers: Worker[] }) {
   return (
     <MutationDialog
       title="Nouvelle dépense"
@@ -204,6 +185,13 @@ export function NewExpenseDialog({ jobs, business }: { jobs: Job[]; business: Bu
         <Field>
           <FieldLabel htmlFor="expense-method">Mode de paiement</FieldLabel>
           <Input id="expense-method" name="paymentMethod" />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="expense-purchaser">Acheté par</FieldLabel>
+          <NativeSelect id="expense-purchaser" name="purchaserWorkerId" className="w-full" defaultValue="">
+            <NativeSelectOption value="">Non précisé</NativeSelectOption>
+            {workers.filter((worker) => worker.active).map((worker) => <NativeSelectOption key={worker.id} value={worker.id}>{worker.name}</NativeSelectOption>)}
+          </NativeSelect>
         </Field>
         <Field>
           <FieldLabel htmlFor="expense-job">Travail lié (facultatif)</FieldLabel>

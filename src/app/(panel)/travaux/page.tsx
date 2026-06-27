@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Travaux" };
 export default async function JobsPage() {
   const data = await getAppData();
   const jobs = data.jobs.toSorted((a, b) => b.startsAt.localeCompare(a.startsAt));
+  const workerNames = new Map(data.workers.map((worker) => [worker.id, worker.name]));
 
   return (
     <>
@@ -22,7 +23,7 @@ export default async function JobsPage() {
         <CardContent className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Vendeur</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Total travail</TableHead><TableHead className="text-right">Pourboire</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
+              <TableRow><TableHead>Client</TableHead><TableHead>Date</TableHead><TableHead>Vente</TableHead><TableHead>Nettoyé par</TableHead><TableHead>Service</TableHead><TableHead>Statut</TableHead><TableHead>Paiement</TableHead><TableHead>Google</TableHead><TableHead className="text-right">Total travail</TableHead><TableHead className="text-right">Pourboire</TableHead><TableHead><span className="sr-only">Actions</span></TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {jobs.map((job) => (
@@ -30,6 +31,7 @@ export default async function JobsPage() {
                   <TableCell><p className="font-medium">{job.clientName}</p><p className="max-w-56 truncate text-xs text-muted-foreground">{job.address}</p></TableCell>
                   <TableCell><p>{formatDate(job.startsAt)}</p><p className="text-xs text-muted-foreground">{job.timeIsSet ? `${formatDate(job.startsAt, "HH:mm")}–${formatDate(job.endsAt, "HH:mm")}` : "Heure à confirmer"}</p></TableCell>
                   <TableCell>{job.sellerName ?? "Historique"}</TableCell>
+                  <TableCell>{job.workerIds.map((workerId) => workerNames.get(workerId)).filter(Boolean).join(" + ") || "À confirmer"}</TableCell>
                   <TableCell>{formatServiceScope(job.serviceScope)}{job.windowCount ? <p className="text-xs text-muted-foreground">{job.windowCount} fenêtres</p> : null}</TableCell>
                   <TableCell><JobStatusBadge status={job.status} /></TableCell>
                   <TableCell><PaymentStatusBadge status={job.paymentStatus} /></TableCell>

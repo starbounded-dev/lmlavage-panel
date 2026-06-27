@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { calculateIncludedTaxes, calculateTaxes, roundMoney } from "@/lib/calculations";
 import { isDemoMode } from "@/lib/env";
-import { requireBusinessId, requireOwnerBusinessId } from "@/lib/auth";
+import { requireBusinessId } from "@/lib/auth";
+import { findWorkerForSalesSplit, parseWorkerIdList, SALES_SPLIT_PROFILES } from "@/lib/sales-splits";
+import type { SalesSplitProfile, Worker } from "@/types/domain";
 import { syncJobToGoogle } from "@/lib/google/sync";
 import { resolveJobSchedule } from "@/lib/job-schedule";
 import { parseMapCoordinates } from "@/lib/map-geometry";
@@ -30,6 +32,31 @@ function calculateExpenseAmounts(
   if (mode === "total") return calculateIncludedTaxes(amount, settings);
   const subtotal = roundMoney(amount);
   return { subtotal, ...calculateTaxes(subtotal, settings) };
+}
+
+const salesSplitProfileSchema = z.enum(SALES_SPLIT_PROFILES);
+
+function resolveSellerWorkerId(profile: SalesSplitProfile, workers: Worker[]) {
+  if (profile === "split_alexis_guillaume" || profile === "legacy_standard") {
+    return { ok: true as const, workerId: null };
+  }
+
+  const worker = findWorkerForSalesSplit(workers, profile);
+  if (!worker) {
+    return { ok: false as const };
+  }
+
+  return { ok: true as const, workerId: worker.id };
+}
+
+function mapWorkerRow(row: { id: string; name: string; active: boolean; sales_split_key?: string | null; sales_split_profile?: string | null; user_id?: string | null }): Worker {
+  return {
+    id: row.id,
+    name: row.name,
+    active: row.active,
+    salesSplitProfile: (row.sales_split_key ?? row.sales_split_profile ?? "legacy_standard") as Worker["salesSplitProfile"],
+    userId: row.user_id ?? null,
+  };
 }
 
 export async function signInAction(formData: FormData) {
@@ -285,7 +312,7 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Utilisez un courriel valide et un mot de passe de 12 caractères avec majuscule, minuscule et chiffre." };
   }
 
-  const { auth, businessId } = await requireOwnerBusinessId();
+  const { auth, businessId } = await requireBusinessId();
   if (auth.isDemo) {
     return { ok: false, message: "La création de comptes est désactivée en mode démonstration." };
   }
@@ -338,7 +365,7 @@ export async function createAccountAction(formData: FormData): Promise<ActionRes
   }
 
   revalidatePath("/parametres");
-  return { ok: true, message: "Compte administrateur créé. Transmettez le mot de passe initial de façon sécurisée." };
+  return { ok: true, message: "Compte créé avec accès complet. Transmettez le mot de passe initial de façon sécurisée." };
 }
 
 export async function assignWorkerAccountAction(formData: FormData): Promise<ActionResult> {
@@ -347,7 +374,7 @@ export async function assignWorkerAccountAction(formData: FormData): Promise<Act
     .safeParse({ workerId: formValue(formData, "workerId"), userId: formValue(formData, "userId") });
   if (!parsed.success) return { ok: false, message: "Choisissez un travailleur et un compte valides." };
 
-  const { auth, businessId } = await requireOwnerBusinessId();
+  const { auth, businessId } = await requireBusinessId();
   if (auth.isDemo) return { ok: false, message: "L’association est désactivée en mode démonstration." };
   const admin = getSupabaseAdminClient();
   if (!admin) return { ok: false, message: "La clé de service Supabase est absente." };
@@ -388,8 +415,8 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       tipAmount: z.coerce.number().min(0).max(1_000_000),
       followupDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
-      workerIds: z.array(z.string()),
-      sellerWorkerId: requiredText,
+      cleanerWorkerIds: z.array(requiredText).min(1),
+      salesSplitProfile: salesSplitProfileSchema,
     })
     .safeParse({
       propertyId: formValue(formData, "propertyId"),
@@ -402,8 +429,8 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       tipAmount: formValue(formData, "tipAmount") || "0",
       followupDate: formValue(formData, "followupDate"),
       notes: formValue(formData, "notes"),
-      workerIds: formData.getAll("workerIds").filter((value): value is string => typeof value === "string"),
-      sellerWorkerId: formValue(formData, "sellerWorkerId"),
+      cleanerWorkerIds: parseWorkerIdList(formValue(formData, "cleanerWorkerIds")),
+      salesSplitProfile: formValue(formData, "salesSplitProfile"),
     });
 
   if (!parsed.success) {
@@ -421,7 +448,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
 
-  const [{ data: property, error: propertyError }, { data: business, error: businessError }, { data: seller, error: sellerError }] =
+  const [{ data: property, error: propertyError }, { data: business, error: businessError }, { data: workerRows, error: workersError }] =
     await Promise.all([
       supabase
         .from("properties")
@@ -436,15 +463,25 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
         .single(),
       supabase
         .from("workers")
-        .select("id")
+        .select("id,name,active,sales_split_key,sales_split_profile,user_id")
         .eq("business_id", businessId)
-        .eq("id", parsed.data.sellerWorkerId)
-        .eq("active", true)
-        .single(),
+        .eq("active", true),
     ]);
 
-  if (propertyError || businessError || sellerError || !property || !business || !seller) {
-    return { ok: false, message: "La propriété, le vendeur ou les taxes sont introuvables." };
+  const activeWorkers = (workerRows ?? []).map(mapWorkerRow);
+  const cleanerWorkerIds = [...new Set(parsed.data.cleanerWorkerIds)];
+  const seller = resolveSellerWorkerId(parsed.data.salesSplitProfile, activeWorkers);
+
+  if (
+    propertyError ||
+    businessError ||
+    workersError ||
+    !property ||
+    !business ||
+    !seller.ok ||
+    activeWorkers.filter((worker) => cleanerWorkerIds.includes(worker.id)).length !== cleanerWorkerIds.length
+  ) {
+    return { ok: false, message: "La propriété, la vente, les travailleurs ou les taxes sont introuvables." };
   }
 
   const taxes = calculateTaxes(parsed.data.serviceSubtotal, {
@@ -471,7 +508,8 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
       total_due: taxes.total,
       followup_date: parsed.data.followupDate || null,
       notes: parsed.data.notes || null,
-      seller_worker_id: seller.id,
+      seller_worker_id: seller.workerId,
+      sales_split_key: parsed.data.salesSplitProfile,
       google_sync_status: "pending",
     })
     .select("id")
@@ -481,9 +519,9 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     return { ok: false, message: jobError?.message ?? "Création impossible." };
   }
 
-  if (parsed.data.workerIds.length > 0) {
+  if (cleanerWorkerIds.length > 0) {
     const { error: workersError } = await supabase.from("job_workers").insert(
-      parsed.data.workerIds.map((workerId) => ({
+      cleanerWorkerIds.map((workerId) => ({
         business_id: businessId,
         job_id: job.id,
         worker_id: workerId,
@@ -496,7 +534,7 @@ export async function createJobAction(formData: FormData): Promise<ActionResult>
     p_business_id: businessId,
     p_job_id: job.id,
     p_tip_amount: parsed.data.tipAmount,
-    p_worker_ids: [...new Set(parsed.data.workerIds)],
+    p_worker_ids: cleanerWorkerIds,
   });
   if (tipError) {
     await supabase.from("jobs").delete().eq("business_id", businessId).eq("id", job.id);
@@ -525,8 +563,8 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
       tipAmount: z.coerce.number().min(0).max(1_000_000),
       followupDate: z.string().trim().max(20),
       notes: z.string().trim().max(2000),
-      workerIds: z.array(requiredText),
-      sellerWorkerId: requiredText,
+      cleanerWorkerIds: z.array(requiredText).min(1),
+      salesSplitProfile: salesSplitProfileSchema,
     })
     .safeParse({
       jobId: formValue(formData, "jobId"),
@@ -540,8 +578,8 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
       tipAmount: formValue(formData, "tipAmount") || "0",
       followupDate: formValue(formData, "followupDate"),
       notes: formValue(formData, "notes"),
-      workerIds: formData.getAll("workerIds").filter((value): value is string => typeof value === "string"),
-      sellerWorkerId: formValue(formData, "sellerWorkerId"),
+      cleanerWorkerIds: parseWorkerIdList(formValue(formData, "cleanerWorkerIds")),
+      salesSplitProfile: formValue(formData, "salesSplitProfile"),
     });
   if (!parsed.success) return { ok: false, message: "Vérifiez les renseignements du travail." };
 
@@ -553,16 +591,16 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
   const supabase = await createSupabaseServerClient();
   if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
 
-  const [{ data: property }, { data: business }, { data: seller }, { data: workers }] = await Promise.all([
+  const cleanerWorkerIds = [...new Set(parsed.data.cleanerWorkerIds)];
+  const [{ data: property }, { data: business }, { data: workerRows }] = await Promise.all([
     supabase.from("properties").select("client_id").eq("business_id", businessId).eq("id", parsed.data.propertyId).maybeSingle(),
     supabase.from("businesses").select("gst_enabled,qst_enabled,gst_rate,qst_rate").eq("id", businessId).maybeSingle(),
-    supabase.from("workers").select("id").eq("business_id", businessId).eq("id", parsed.data.sellerWorkerId).eq("active", true).maybeSingle(),
-    parsed.data.workerIds.length > 0
-      ? supabase.from("workers").select("id").eq("business_id", businessId).in("id", parsed.data.workerIds)
-      : Promise.resolve({ data: [], error: null }),
+    supabase.from("workers").select("id,name,active,sales_split_key,sales_split_profile,user_id").eq("business_id", businessId).eq("active", true),
   ]);
-  if (!property || !business || !seller || (workers?.length ?? 0) !== new Set(parsed.data.workerIds).size) {
-    return { ok: false, message: "La propriété, le vendeur, les travailleurs ou les taxes sont introuvables." };
+  const activeWorkers = (workerRows ?? []).map(mapWorkerRow);
+  const seller = resolveSellerWorkerId(parsed.data.salesSplitProfile, activeWorkers);
+  if (!property || !business || !seller.ok || activeWorkers.filter((worker) => cleanerWorkerIds.includes(worker.id)).length !== cleanerWorkerIds.length) {
+    return { ok: false, message: "La propriété, la vente, les travailleurs ou les taxes sont introuvables." };
   }
 
   const taxes = calculateTaxes(parsed.data.serviceSubtotal, {
@@ -587,7 +625,8 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
       total_due: taxes.total,
       followup_date: parsed.data.followupDate || null,
       notes: parsed.data.notes || null,
-      seller_worker_id: parsed.data.sellerWorkerId,
+      seller_worker_id: seller.workerId,
+      sales_split_key: parsed.data.salesSplitProfile,
       google_sync_status: "pending",
     })
     .eq("business_id", businessId)
@@ -600,9 +639,9 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     .eq("business_id", businessId)
     .eq("job_id", parsed.data.jobId);
   if (unlinkError) return { ok: false, message: unlinkError.message };
-  if (parsed.data.workerIds.length > 0) {
+  if (cleanerWorkerIds.length > 0) {
     const { error: linkError } = await supabase.from("job_workers").insert(
-      [...new Set(parsed.data.workerIds)].map((workerId) => ({ business_id: businessId, job_id: parsed.data.jobId, worker_id: workerId }))
+      cleanerWorkerIds.map((workerId) => ({ business_id: businessId, job_id: parsed.data.jobId, worker_id: workerId }))
     );
     if (linkError) return { ok: false, message: linkError.message };
   }
@@ -611,7 +650,7 @@ export async function updateJobAction(formData: FormData): Promise<ActionResult>
     p_business_id: businessId,
     p_job_id: parsed.data.jobId,
     p_tip_amount: parsed.data.tipAmount,
-    p_worker_ids: [...new Set(parsed.data.workerIds)],
+    p_worker_ids: cleanerWorkerIds,
   });
   if (tipError) return { ok: false, message: tipError.message };
 
@@ -632,6 +671,7 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
       amountMode: z.enum(["subtotal", "total"]),
       amount: z.coerce.number().min(0).max(1_000_000),
       paymentMethod: z.string().trim().max(80),
+      purchaserWorkerId: z.string().trim().max(100),
       notes: z.string().trim().max(2000),
       jobId: z.string().trim().max(100),
     })
@@ -642,6 +682,7 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
       amountMode: formValue(formData, "amountMode"),
       amount: formValue(formData, "amount"),
       paymentMethod: formValue(formData, "paymentMethod"),
+      purchaserWorkerId: formValue(formData, "purchaserWorkerId"),
       notes: formValue(formData, "notes"),
       jobId: formValue(formData, "jobId"),
     });
@@ -673,6 +714,10 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
     const { data: job } = await supabase.from("jobs").select("id").eq("business_id", businessId).eq("id", parsed.data.jobId).maybeSingle();
     if (!job) return { ok: false, message: "Le travail associé est introuvable." };
   }
+  if (parsed.data.purchaserWorkerId) {
+    const { data: purchaser } = await supabase.from("workers").select("id").eq("business_id", businessId).eq("id", parsed.data.purchaserWorkerId).maybeSingle();
+    if (!purchaser) return { ok: false, message: "La personne qui a acheté le produit est introuvable." };
+  }
   const amounts = calculateExpenseAmounts(parsed.data.amountMode, parsed.data.amount, {
     gstEnabled: business.gst_enabled,
     qstEnabled: business.qst_enabled,
@@ -689,6 +734,7 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
     qst_amount: amounts.qst,
     total: amounts.total,
     payment_method: parsed.data.paymentMethod || null,
+    purchaser_worker_id: parsed.data.purchaserWorkerId || null,
     notes: parsed.data.notes || null,
     job_id: parsed.data.jobId || null,
   }).select("id").single();
@@ -716,6 +762,7 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
       amountMode: z.enum(["subtotal", "total"]),
       amount: z.coerce.number().min(0).max(1_000_000),
       paymentMethod: z.string().trim().max(80),
+      purchaserWorkerId: z.string().trim().max(100),
       notes: z.string().trim().max(2000),
       jobId: z.string().trim().max(200),
     })
@@ -727,6 +774,7 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
       amountMode: formValue(formData, "amountMode"),
       amount: formValue(formData, "amount"),
       paymentMethod: formValue(formData, "paymentMethod"),
+      purchaserWorkerId: formValue(formData, "purchaserWorkerId"),
       notes: formValue(formData, "notes"),
       jobId: formValue(formData, "jobId"),
     });
@@ -746,6 +794,10 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
   if (parsed.data.jobId) {
     const { data: job } = await supabase.from("jobs").select("id").eq("business_id", businessId).eq("id", parsed.data.jobId).maybeSingle();
     if (!job) return { ok: false, message: "Le travail associé est introuvable." };
+  }
+  if (parsed.data.purchaserWorkerId) {
+    const { data: purchaser } = await supabase.from("workers").select("id").eq("business_id", businessId).eq("id", parsed.data.purchaserWorkerId).maybeSingle();
+    if (!purchaser) return { ok: false, message: "La personne qui a acheté le produit est introuvable." };
   }
   const [{ data: current, error: currentError }, { data: business, error: businessError }] = await Promise.all([
     supabase.from("expenses").select("receipt_path").eq("business_id", businessId).eq("id", parsed.data.expenseId).single(),
@@ -781,6 +833,7 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
       qst_amount: amounts.qst,
       total: amounts.total,
       payment_method: parsed.data.paymentMethod || null,
+      purchaser_worker_id: parsed.data.purchaserWorkerId || null,
       notes: parsed.data.notes || null,
       job_id: parsed.data.jobId || null,
       receipt_path: newReceiptPath,

@@ -4,6 +4,7 @@ import { google } from "googleapis";
 import { requireBusinessId } from "@/lib/auth";
 import { getAppUrl } from "@/lib/env";
 import { createGoogleOAuthClient } from "@/lib/google/client";
+import { syncAllJobsToGoogle } from "@/lib/google/sync";
 import { encryptRefreshToken } from "@/lib/google/tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -28,7 +29,11 @@ export async function GET(request: Request) {
     if (!supabase) throw new Error("Supabase non configuré");
     const { error } = await supabase.from("calendar_connections").upsert({ business_id: businessId, calendar_id: "primary", encrypted_refresh_token: encrypted.encrypted, token_iv: encrypted.iv, token_tag: encrypted.tag, connected_email: profile.data.email, last_error: null, updated_at: new Date().toISOString() }, { onConflict: "business_id" });
     if (error) throw error;
-    return NextResponse.redirect(`${getAppUrl()}/parametres?google=connected`);
+    const syncResult = await syncAllJobsToGoogle(supabase, businessId);
+    const syncParams = syncResult.ok
+      ? "google=connected"
+      : `google=connected_sync_errors&synced=${syncResult.synced}&failed=${syncResult.failed}`;
+    return NextResponse.redirect(`${getAppUrl()}/parametres?${syncParams}`);
   } catch {
     return NextResponse.redirect(`${getAppUrl()}/parametres?google=error`);
   }

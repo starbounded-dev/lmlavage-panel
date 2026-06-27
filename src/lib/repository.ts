@@ -3,6 +3,7 @@ import "server-only";
 import { demoData } from "@/lib/demo-data";
 import { isDemoMode } from "@/lib/env";
 import { mapCoordinateFromDatabase, mapRouteFromDatabase } from "@/lib/map-geometry";
+import { salesSplitLabel } from "@/lib/sales-splits";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireBusinessId } from "@/lib/auth";
 import type {
@@ -163,7 +164,7 @@ export async function getAppData(): Promise<AppData> {
     id: text(row.id),
     name: text(row.name),
     active: boolean(row.active),
-    salesSplitProfile: text(row.sales_split_profile, "standard") as Worker["salesSplitProfile"],
+    salesSplitProfile: text(row.sales_split_key, text(row.sales_split_profile, "legacy_standard")) as Worker["salesSplitProfile"],
     userId: nullableText(row.user_id),
   }));
 
@@ -203,7 +204,8 @@ export async function getAppData(): Promise<AppData> {
         .filter((link) => text(link.job_id) === text(row.id))
         .map((link) => text(link.worker_id)),
       sellerWorkerId: nullableText(row.seller_worker_id),
-      sellerName: workerMap.get(text(row.seller_worker_id))?.name ?? null,
+      sellerName: workerMap.get(text(row.seller_worker_id))?.name ?? salesSplitLabel(text(row.sales_split_key, "legacy_standard") as Job["salesSplitProfile"]),
+      salesSplitProfile: text(row.sales_split_key, "legacy_standard") as Job["salesSplitProfile"],
       googleSyncStatus: text(row.google_sync_status, "not_connected") as Job["googleSyncStatus"],
     };
   });
@@ -218,6 +220,8 @@ export async function getAppData(): Promise<AppData> {
     qstAmount: number(row.qst_amount),
     total: number(row.total),
     paymentMethod: nullableText(row.payment_method),
+    purchaserWorkerId: nullableText(row.purchaser_worker_id),
+    purchaserName: workerMap.get(text(row.purchaser_worker_id))?.name ?? null,
     notes: nullableText(row.notes),
     jobId: nullableText(row.job_id),
     receiptPath: nullableText(row.receipt_path),
@@ -242,7 +246,10 @@ export async function getAppData(): Promise<AppData> {
     name: text(row.name),
     type: text(row.bucket_type, "person") as AllocationBucket["type"],
     percentage: number(row.percentage),
+    alexisSalePercentage: number(row.alexis_sale_percentage),
+    guillaumeSalePercentage: number(row.guillaume_sale_percentage),
     poSalePercentage: number(row.po_sale_percentage),
+    splitSalePercentage: number(row.split_sale_percentage),
     amount: allocationRows
       .filter((allocation) => text(allocation.bucket_id) === text(row.id))
       .reduce((total, allocation) => total + number(allocation.amount), 0),

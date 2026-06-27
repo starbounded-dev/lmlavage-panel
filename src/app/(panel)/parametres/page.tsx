@@ -99,8 +99,8 @@ export default async function SettingsPage() {
 
         <TabsContent value="security">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><LockKeyholeIcon className="size-5 text-primary" />Accès au panneau</CardTitle><CardDescription>Le propriétaire crée les comptes administrateurs; aucune inscription publique.</CardDescription></CardHeader>
-            <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground"><p>Les administrateurs accèdent aux opérations, mais seul le propriétaire peut gérer les comptes.</p><p>Les pages, actions serveur et politiques RLS valident également l’appartenance à l’entreprise.</p></CardContent>
+            <CardHeader><CardTitle className="flex items-center gap-2"><LockKeyholeIcon className="size-5 text-primary" />Accès au panneau</CardTitle><CardDescription>Tous les comptes autorisés ont accès complet; aucune inscription publique.</CardDescription></CardHeader>
+            <CardContent className="flex flex-col gap-3 text-sm text-muted-foreground"><p>Un compte rattaché à LM peut consulter, créer, modifier et gérer les autres comptes.</p><p>Les pages, actions serveur et politiques RLS valident également l’appartenance à l’entreprise.</p></CardContent>
           </Card>
         </TabsContent>
       </Tabs>

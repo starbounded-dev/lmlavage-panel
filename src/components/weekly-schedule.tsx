@@ -2,6 +2,7 @@ import { addDays, format, isSameDay, startOfWeek } from "date-fns";
 import { frCA } from "date-fns/locale";
 import { Clock3Icon, MapPinIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { dateKeyInQuebec, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/types/domain";
 
@@ -19,7 +20,7 @@ export function WeeklySchedule({ jobs, referenceDate }: { jobs: Job[]; reference
             </div>
             <div className="flex flex-col gap-2 p-2">
               {jobs
-                .filter((job) => isSameDay(new Date(job.startsAt), day) && job.status !== "cancelled")
+                .filter((job) => dateKeyInQuebec(job.startsAt) === format(day, "yyyy-MM-dd") && job.status !== "cancelled")
                 .map((job) => (
                   <div key={job.id} className="rounded-lg border bg-card p-2 shadow-xs">
                     <div className="mb-1 flex items-center justify-between gap-2">
@@ -28,7 +29,7 @@ export function WeeklySchedule({ jobs, referenceDate }: { jobs: Job[]; reference
                     </div>
                     <p className="flex items-center gap-1 text-[0.68rem] text-muted-foreground">
                       <Clock3Icon className="size-3" />
-                      {job.timeIsSet ? `${format(new Date(job.startsAt), "HH:mm")}–${format(new Date(job.endsAt), "HH:mm")}` : "Heure à confirmer"}
+                      {job.timeIsSet ? `${formatDate(job.startsAt, "HH:mm")}–${formatDate(job.endsAt, "HH:mm")}` : "Heure à confirmer"}
                     </p>
                     <p className="mt-1 flex items-center gap-1 truncate text-[0.68rem] text-muted-foreground">
                       <MapPinIcon className="size-3" />

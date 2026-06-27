@@ -129,8 +129,8 @@ export const demoData: AppData = {
     },
   ],
   workers: [
-    { id: "worker-alexis", name: "Alexis", active: true, salesSplitProfile: "standard", userId: null },
-    { id: "worker-guillaume", name: "Guillaume", active: true, salesSplitProfile: "standard", userId: null },
+    { id: "worker-alexis", name: "Alexis", active: true, salesSplitProfile: "alexis_sale", userId: null },
+    { id: "worker-guillaume", name: "Guillaume", active: true, salesSplitProfile: "guillaume_sale", userId: null },
     { id: "worker-po", name: "P-O", active: true, salesSplitProfile: "po_sale", userId: null },
   ],
   jobs: [
@@ -159,6 +159,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis", "worker-guillaume"],
       sellerWorkerId: "worker-alexis",
       sellerName: "Alexis",
+      salesSplitProfile: "alexis_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -186,6 +187,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis", "worker-guillaume"],
       sellerWorkerId: "worker-guillaume",
       sellerName: "Guillaume",
+      salesSplitProfile: "guillaume_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -213,6 +215,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis"],
       sellerWorkerId: "worker-alexis",
       sellerName: "Alexis",
+      salesSplitProfile: "alexis_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -240,6 +243,7 @@ export const demoData: AppData = {
       workerIds: ["worker-guillaume"],
       sellerWorkerId: "worker-guillaume",
       sellerName: "Guillaume",
+      salesSplitProfile: "guillaume_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -267,6 +271,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis", "worker-guillaume"],
       sellerWorkerId: "worker-alexis",
       sellerName: "Alexis",
+      salesSplitProfile: "alexis_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -294,6 +299,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis"],
       sellerWorkerId: "worker-alexis",
       sellerName: "Alexis",
+      salesSplitProfile: "alexis_sale",
       googleSyncStatus: "synced",
     },
     {
@@ -321,6 +327,7 @@ export const demoData: AppData = {
       workerIds: ["worker-guillaume"],
       sellerWorkerId: "worker-guillaume",
       sellerName: "Guillaume",
+      salesSplitProfile: "guillaume_sale",
       googleSyncStatus: "pending",
     },
     {
@@ -348,6 +355,7 @@ export const demoData: AppData = {
       workerIds: ["worker-alexis", "worker-guillaume"],
       sellerWorkerId: "worker-po",
       sellerName: "P-O",
+      salesSplitProfile: "po_sale",
       googleSyncStatus: "synced",
     },
   ],
@@ -362,6 +370,8 @@ export const demoData: AppData = {
       qstAmount: 0,
       total: 192.93,
       paymentMethod: null,
+      purchaserWorkerId: "worker-alexis",
+      purchaserName: "Alexis",
       notes: "Importé du classeur initial.",
       jobId: null,
       receiptPath: null,
@@ -376,6 +386,8 @@ export const demoData: AppData = {
       qstAmount: 0,
       total: 63.22,
       paymentMethod: null,
+      purchaserWorkerId: "worker-guillaume",
+      purchaserName: "Guillaume",
       notes: "Importé du classeur initial.",
       jobId: null,
       receiptPath: null,
@@ -390,6 +402,8 @@ export const demoData: AppData = {
       qstAmount: 0,
       total: 37.9,
       paymentMethod: null,
+      purchaserWorkerId: "worker-po",
+      purchaserName: "P-O",
       notes: "Importé du classeur initial.",
       jobId: null,
       receiptPath: null,
@@ -414,10 +428,11 @@ export const demoData: AppData = {
     routeCoordinates: demoProspectingRoutes[index],
   })),
   allocationBuckets: [
-    { id: "bucket-alexis", name: "Alexis", type: "person", percentage: 40, poSalePercentage: 35, amount: 240 },
-    { id: "bucket-guillaume", name: "Guillaume", type: "person", percentage: 40, poSalePercentage: 35, amount: 240 },
-    { id: "bucket-gas", name: "Gaz", type: "reserve", percentage: 20, poSalePercentage: 15, amount: 120 },
-    { id: "bucket-po", name: "P-O", type: "person", percentage: 0, poSalePercentage: 15, amount: 0 },
+    { id: "bucket-alexis", name: "Alexis", type: "person", percentage: 40, alexisSalePercentage: 50, guillaumeSalePercentage: 35, poSalePercentage: 35, splitSalePercentage: 40, amount: 240 },
+    { id: "bucket-guillaume", name: "Guillaume", type: "person", percentage: 40, alexisSalePercentage: 35, guillaumeSalePercentage: 50, poSalePercentage: 35, splitSalePercentage: 40, amount: 240 },
+    { id: "bucket-gas", name: "Gaz", type: "reserve", percentage: 20, alexisSalePercentage: 15, guillaumeSalePercentage: 15, poSalePercentage: 15, splitSalePercentage: 15, amount: 120 },
+    { id: "bucket-po", name: "P-O", type: "person", percentage: 0, alexisSalePercentage: 0, guillaumeSalePercentage: 0, poSalePercentage: 15, splitSalePercentage: 0, amount: 0 },
+    { id: "bucket-products", name: "Produits", type: "reserve", percentage: 0, alexisSalePercentage: 0, guillaumeSalePercentage: 0, poSalePercentage: 0, splitSalePercentage: 5, amount: 0 },
   ],
   revenueSeries: [
     { month: "Jan", current: 0, previous: 0 },

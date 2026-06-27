@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isAfter, isSameDay, startOfDay } from "date-fns";
 import { BellRingIcon, CalendarDaysIcon, CircleDollarSignIcon, ReceiptTextIcon } from "lucide-react";
 import { AllocationChart, RevenueChart } from "@/components/dashboard-charts";
 import { MetricCard } from "@/components/metric-card";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getAppData } from "@/lib/repository";
-import { formatCad, formatDate } from "@/lib/format";
+import { dateKeyInQuebec, formatCad, formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Tableau de bord" };
 
@@ -22,14 +21,15 @@ export default async function DashboardPage() {
   const paidJobs = data.jobs.filter((job) => job.paymentStatus === "paid");
   const collected = paidJobs.reduce((total, job) => total + job.totalDue + job.tipAmount, 0);
   const tips = paidJobs.reduce((total, job) => total + job.tipAmount, 0);
+  const referenceDateKey = dateKeyInQuebec(referenceDate);
   const upcoming = data.jobs.filter(
-    (job) => job.status === "scheduled" && isAfter(new Date(job.startsAt), startOfDay(referenceDate))
+    (job) => job.status === "scheduled" && dateKeyInQuebec(job.startsAt) >= referenceDateKey
   );
   const reminders = data.jobs
     .filter((job) => job.followupDate)
     .toSorted((a, b) => (a.followupDate ?? "").localeCompare(b.followupDate ?? ""));
   const expenseTotal = data.expenses.reduce((total, expense) => total + expense.total, 0);
-  const todayJobs = data.jobs.filter((job) => isSameDay(new Date(job.startsAt), referenceDate));
+  const todayJobs = data.jobs.filter((job) => dateKeyInQuebec(job.startsAt) === referenceDateKey);
   const unpaidCompleted = data.jobs.filter(
     (job) => job.status === "completed" && job.paymentStatus === "unpaid"
   );

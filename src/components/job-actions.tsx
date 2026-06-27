@@ -22,7 +22,7 @@ import {
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import { MutationDialog } from "@/components/mutation-dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { JobAssignmentFields } from "@/components/job-assignment-fields";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,14 +108,7 @@ export function JobActions({ job, clients, workers }: JobActionsProps) {
               <NativeSelectOption value="both">Intérieur / extérieur</NativeSelectOption>
             </NativeSelect>
           </Field>
-          <Field>
-            <FieldLabel htmlFor={`job-seller-${job.id}`}>Vente faite par</FieldLabel>
-            <NativeSelect id={`job-seller-${job.id}`} name="sellerWorkerId" defaultValue={job.sellerWorkerId ?? ""} className="w-full" required>
-              {workers.filter((worker) => worker.active).map((worker) => (
-                <NativeSelectOption key={worker.id} value={worker.id}>{worker.name}</NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
+          <JobAssignmentFields workers={workers} job={job} />
           <Field>
             <FieldLabel htmlFor={`job-windows-${job.id}`}>Nombre de fenêtres</FieldLabel>
             <Input id={`job-windows-${job.id}`} name="windowCount" type="number" min="0" defaultValue={job.windowCount ?? ""} />
@@ -127,22 +120,11 @@ export function JobActions({ job, clients, workers }: JobActionsProps) {
           <Field>
             <FieldLabel htmlFor={`job-tip-${job.id}`}>Pourboire (séparé)</FieldLabel>
             <Input id={`job-tip-${job.id}`} name="tipAmount" type="number" min="0" step="0.01" defaultValue={job.tipAmount} />
-            <FieldDescription>Réparti également entre les travailleurs assignés.</FieldDescription>
+            <FieldDescription>Réparti également entre les personnes choisies dans “Nettoyé par”.</FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor={`job-followup-${job.id}`}>Date de retour suggérée</FieldLabel>
             <Input id={`job-followup-${job.id}`} name="followupDate" type="date" defaultValue={job.followupDate ?? ""} />
-          </Field>
-          <Field className="sm:col-span-2">
-            <FieldLabel>Travailleurs</FieldLabel>
-            <div className="flex flex-wrap gap-4 rounded-lg border p-3">
-              {workers.filter((worker) => worker.active).map((worker) => (
-                <label key={worker.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox name="workerIds" value={worker.id} defaultChecked={job.workerIds.includes(worker.id)} />
-                  {worker.name}
-                </label>
-              ))}
-            </div>
           </Field>
           <Field className="sm:col-span-2">
             <FieldLabel htmlFor={`job-notes-${job.id}`}>Notes</FieldLabel>

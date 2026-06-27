@@ -9,9 +9,9 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import type { Business, Expense, Job } from "@/types/domain";
+import type { Business, Expense, Job, Worker } from "@/types/domain";
 
-export function ExpenseActions({ expense, jobs, business }: { expense: Expense; jobs: Job[]; business: Business }) {
+export function ExpenseActions({ expense, jobs, business, workers }: { expense: Expense; jobs: Job[]; business: Business; workers: Worker[] }) {
   return (
     <MutationDialog
       title={`Modifier ${expense.vendor}`}
@@ -40,6 +40,13 @@ export function ExpenseActions({ expense, jobs, business }: { expense: Expense; 
         <Field>
           <FieldLabel htmlFor={`expense-method-${expense.id}`}>Mode de paiement</FieldLabel>
           <Input id={`expense-method-${expense.id}`} name="paymentMethod" defaultValue={expense.paymentMethod ?? ""} />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={`expense-purchaser-${expense.id}`}>Acheté par</FieldLabel>
+          <NativeSelect id={`expense-purchaser-${expense.id}`} name="purchaserWorkerId" defaultValue={expense.purchaserWorkerId ?? ""} className="w-full">
+            <NativeSelectOption value="">Non précisé</NativeSelectOption>
+            {workers.filter((worker) => worker.active).map((worker) => <NativeSelectOption key={worker.id} value={worker.id}>{worker.name}</NativeSelectOption>)}
+          </NativeSelect>
         </Field>
         <Field>
           <FieldLabel htmlFor={`expense-job-${expense.id}`}>Travail lié</FieldLabel>

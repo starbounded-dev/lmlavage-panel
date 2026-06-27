@@ -27,8 +27,10 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await expect(page.getByLabel("Heure de fin (facultative)")).not.toHaveAttribute("required");
   await expect(page.getByLabel("Pourboire (séparé)")).toHaveValue("0");
   await expect(page.getByLabel("Vente faite par")).toBeVisible();
-  await expect(page.getByLabel("Vente faite par").locator("option")).toContainText(["Choisir le vendeur", "Alexis", "Guillaume", "P-O"]);
+  await expect(page.getByLabel("Vente faite par").locator("option")).toContainText(["Alexis", "Guillaume", "P-O", "Split Alexis + Guillaume"]);
+  await expect(page.getByLabel("Nettoyé par")).toHaveValue(/.+/);
   await page.getByRole("button", { name: "Annuler" }).click();
+  await expect(page.getByRole("columnheader", { name: "Nettoyé par" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Total travail" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Pourboire" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Modifier le travail de/ }).first()).toBeVisible();
@@ -53,14 +55,17 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await page.getByRole("button", { name: "Nouvelle dépense" }).click();
   await expect(page.getByLabel("Type de montant").getByRole("option", { name: "Sous-total avant taxes", exact: true })).toBeAttached();
   await expect(page.getByLabel("Type de montant").getByRole("option", { name: "Total taxes incluses", exact: true })).toBeAttached();
+  await expect(page.getByLabel("Acheté par")).toBeVisible();
   await page.getByLabel("Type de montant").selectOption("total");
   await expect(page.getByLabel("Total payé")).toBeVisible();
   await page.getByRole("button", { name: "Annuler" }).click();
 
   await page.goto("/repartition");
   await expect(page.getByRole("heading", { name: "Répartition" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Vente Alexis/Guillaume" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Vente Alexis" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Vente Guillaume" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Vente P-O" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Split A+G" })).toBeVisible();
   const poRow = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "P-O", exact: true }) });
   await expect(poRow).toContainText("0%");
   await expect(poRow).toContainText("15%");

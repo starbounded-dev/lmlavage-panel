@@ -18,8 +18,7 @@ export type AccountManagementData = {
 };
 
 export async function getAccountManagementData(): Promise<AccountManagementData> {
-  const { auth, businessId, role } = await requireBusinessId();
-  if (role !== "owner") return { accounts: [], canManage: false };
+  const { auth, businessId } = await requireBusinessId();
   if (auth.isDemo) {
     return {
       accounts: [{ id: auth.userId, email: auth.email, role: "owner", createdAt: new Date().toISOString(), workerId: null, workerName: null }],
