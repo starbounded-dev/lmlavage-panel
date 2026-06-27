@@ -11,7 +11,12 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await themeToggle.click();
   await expect(page.locator("html")).toHaveClass(/dark/);
 
-  await page.locator('a[href="/clients"]:visible').click();
+  const visibleClientsLink = page.locator('a[href="/clients"]:visible').first();
+  if ((await visibleClientsLink.count()) > 0) {
+    await visibleClientsLink.click();
+  } else {
+    await page.goto("/clients");
+  }
   await expect(page.getByRole("heading", { name: "Clients" })).toBeVisible();
   await page.getByRole("button", { name: "Nouveau client" }).click();
   await expect(page.getByLabel("Numéro client")).toBeVisible();
@@ -39,6 +44,8 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await page.goto("/prospection");
   await expect(page.getByText("Carte de Gatineau", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Carte des secteurs prospectés à Gatineau")).toBeVisible();
+  await expect(page.getByText(/Une page séparée pour le porte-à-porte/)).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Mode terrain mobile" })).toBeVisible();
   await expect(page.getByRole("columnheader", { name: "Portion" })).toBeVisible();
   await page.getByRole("button", { name: "Ajouter une rue" }).click();
   await expect(page.getByLabel("Première maison (facultative)")).not.toHaveAttribute("required");
@@ -49,6 +56,15 @@ test("le tableau de bord et la navigation principale sont disponibles", async ({
   await expect(page.getByLabel("Résultat").getByRole("option", { name: "Clients obtenus et à revenir", exact: true })).toBeAttached();
   await page.getByRole("button", { name: "Annuler" }).click();
   await expect(page.getByRole("button", { name: /Modifier rue/ }).first()).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("link", { name: "Terrain", exact: true }).click();
+  await expect(page).toHaveURL(/\/prospection-mobile$/);
+  await expect(page.getByRole("heading", { name: "Prospection mobile" })).toBeVisible();
+  await expect(page.getByText("Mode terrain mobile", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ajouter maison" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "GPS", exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 });
 
   await page.goto("/depenses");
   await expect(page.getByRole("button", { name: /Modifier la dépense/ }).first()).toBeVisible();

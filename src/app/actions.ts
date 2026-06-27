@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,6 +12,7 @@ import type { SalesSplitProfile, Worker } from "@/types/domain";
 import { syncJobToGoogle } from "@/lib/google/sync";
 import { resolveJobSchedule } from "@/lib/job-schedule";
 import { parseMapCoordinates } from "@/lib/map-geometry";
+import { parseReceiptFile, removeReceiptFile, uploadReceiptFile } from "@/lib/receipt-storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -693,11 +693,8 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
     return { ok: false, message: "Vérifiez les renseignements de la dépense." };
   }
 
-  const receipt = formData.get("receipt");
-  const allowedReceiptTypes = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["application/pdf", "pdf"]]);
-  if (receipt instanceof File && receipt.size > 0 && (!allowedReceiptTypes.has(receipt.type) || receipt.size > 10 * 1024 * 1024)) {
-    return { ok: false, message: "Le reçu doit être un JPG, PNG ou PDF de 10 Mo ou moins." };
-  }
+  const receipt = parseReceiptFile(formData.get("receipt"));
+  if (!receipt.ok) return { ok: false, message: receipt.message };
 
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) {
@@ -726,6 +723,12 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
     gstRate: Number(business.gst_rate),
     qstRate: Number(business.qst_rate),
   });
+  let receiptPath: string | null = null;
+  if (receipt.hasFile) {
+    const upload = await uploadReceiptFile(supabase, businessId, receipt);
+    if (!upload.ok) return { ok: false, message: `Le reçu n’a pas pu être téléversé (${upload.message}).` };
+    receiptPath = upload.path;
+  }
   const { data: expense, error } = await supabase.from("expenses").insert({
     business_id: businessId,
     expense_date: parsed.data.date,
@@ -739,15 +742,12 @@ export async function createExpenseAction(formData: FormData): Promise<ActionRes
     purchaser_worker_id: parsed.data.purchaserWorkerId || null,
     notes: parsed.data.notes || null,
     job_id: parsed.data.jobId || null,
+    receipt_path: receiptPath,
   }).select("id").single();
 
-  if (error || !expense) return { ok: false, message: error?.message ?? "Création impossible." };
-  if (receipt instanceof File && receipt.size > 0) {
-    const extension = allowedReceiptTypes.get(receipt.type)!;
-    const path = `${businessId}/${new Date().getFullYear()}/${randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("receipts").upload(path, receipt, { contentType: receipt.type, upsert: false });
-    if (uploadError) return { ok: true, message: `Dépense ajoutée; le reçu doit être téléversé de nouveau (${uploadError.message}).` };
-    await supabase.from("expenses").update({ receipt_path: path }).eq("business_id", businessId).eq("id", expense.id);
+  if (error || !expense) {
+    if (receiptPath) await removeReceiptFile(supabase, receiptPath);
+    return { ok: false, message: error?.message ?? "Création impossible." };
   }
   revalidatePath("/depenses");
   revalidatePath("/tableau-de-bord");
@@ -782,11 +782,8 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
     });
   if (!parsed.success) return { ok: false, message: "Vérifiez les renseignements de la dépense." };
 
-  const receipt = formData.get("receipt");
-  const allowedReceiptTypes = new Map([["image/jpeg", "jpg"], ["image/png", "png"], ["application/pdf", "pdf"]]);
-  if (receipt instanceof File && receipt.size > 0 && (!allowedReceiptTypes.has(receipt.type) || receipt.size > 10 * 1024 * 1024)) {
-    return { ok: false, message: "Le reçu doit être un JPG, PNG ou PDF de 10 Mo ou moins." };
-  }
+  const receipt = parseReceiptFile(formData.get("receipt"));
+  if (!receipt.ok) return { ok: false, message: receipt.message };
 
   const { businessId, auth } = await requireBusinessId();
   if (auth.isDemo) return { ok: true, message: "Dépense modifiée en mode démonstration." };
@@ -809,13 +806,10 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
   if (businessError || !business) return { ok: false, message: "Les paramètres de taxes sont introuvables." };
 
   let newReceiptPath: string | null = current.receipt_path;
-  if (receipt instanceof File && receipt.size > 0) {
-    const extension = allowedReceiptTypes.get(receipt.type)!;
-    newReceiptPath = `${businessId}/${new Date().getFullYear()}/${randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage
-      .from("receipts")
-      .upload(newReceiptPath, receipt, { contentType: receipt.type, upsert: false });
-    if (uploadError) return { ok: false, message: `Le nouveau reçu n’a pas pu être téléversé (${uploadError.message}).` };
+  if (receipt.hasFile) {
+    const upload = await uploadReceiptFile(supabase, businessId, receipt);
+    if (!upload.ok) return { ok: false, message: `Le nouveau reçu n’a pas pu être téléversé (${upload.message}).` };
+    newReceiptPath = upload.path;
   }
 
   const amounts = calculateExpenseAmounts(parsed.data.amountMode, parsed.data.amount, {
@@ -843,11 +837,11 @@ export async function updateExpenseAction(formData: FormData): Promise<ActionRes
     .eq("business_id", businessId)
     .eq("id", parsed.data.expenseId);
   if (error) {
-    if (newReceiptPath && newReceiptPath !== current.receipt_path) await supabase.storage.from("receipts").remove([newReceiptPath]);
+    if (newReceiptPath && newReceiptPath !== current.receipt_path) await removeReceiptFile(supabase, newReceiptPath);
     return { ok: false, message: error.message };
   }
   if (current.receipt_path && newReceiptPath !== current.receipt_path) {
-    await supabase.storage.from("receipts").remove([current.receipt_path]);
+    await removeReceiptFile(supabase, current.receipt_path);
   }
   revalidatePath("/depenses");
   revalidatePath("/tableau-de-bord");
@@ -1042,6 +1036,7 @@ export async function createProspectHouseAction(formData: FormData): Promise<Act
   });
   if (error) return { ok: false, message: error.message };
   revalidatePath("/prospection");
+  revalidatePath("/prospection-mobile");
   return { ok: true, message: "Maison ajoutée au mode terrain." };
 }
 
@@ -1072,6 +1067,7 @@ export async function updateProspectHouseAction(formData: FormData): Promise<Act
     .eq("id", houseId.data);
   if (error) return { ok: false, message: error.message };
   revalidatePath("/prospection");
+  revalidatePath("/prospection-mobile");
   return { ok: true, message: "Maison mise à jour." };
 }
 
@@ -1089,6 +1085,7 @@ export async function setProspectHouseStatusAction(houseId: string, status: stri
     .eq("id", parsed.data.houseId);
   if (error) return { ok: false, message: error.message };
   revalidatePath("/prospection");
+  revalidatePath("/prospection-mobile");
   return { ok: true, message: "Statut mis à jour." };
 }
 
@@ -1155,6 +1152,7 @@ export async function convertProspectHouseToClientAction(houseId: string): Promi
   }
 
   revalidatePath("/prospection");
+  revalidatePath("/prospection-mobile");
   revalidatePath("/clients");
   return { ok: true, message: `Client #${client.client_number} créé avec l'adresse copiée.` };
 }
@@ -1173,6 +1171,7 @@ export async function deleteProspectHouseAction(houseId: string): Promise<Action
     .eq("id", parsedId.data);
   if (error) return { ok: false, message: error.message };
   revalidatePath("/prospection");
+  revalidatePath("/prospection-mobile");
   return { ok: true, message: "Maison supprimée." };
 }
 

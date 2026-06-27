@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { NewVisitDialog } from "@/components/operation-dialogs";
 import { VisitActions } from "@/components/visit-actions";
 import { PageHeader } from "@/components/page-header";
-import { ProspectingFieldMode } from "@/components/prospecting-field-mode";
 import { ProspectingMapLazy } from "@/components/prospecting-map-lazy";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate } from "@/lib/format";
@@ -30,8 +31,18 @@ export default async function ProspectingPage() {
   const mappedHouses = data.prospectHouses.filter((house) => house.latitude != null && house.longitude != null).length;
   return (
     <>
-      <PageHeader title="Prospection" description="Portions de rues parcourues, maisons clientes et dates prévues pour revenir." action={<NewVisitDialog />} />
-      <ProspectingFieldMode houses={data.prospectHouses} />
+      <PageHeader
+        title="Prospection"
+        description="Gestion complète des rues parcourues, maisons clientes et dates prévues pour revenir."
+        action={
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" render={<Link href="/prospection-mobile" />}>
+              Mode terrain mobile
+            </Button>
+            <NewVisitDialog />
+          </div>
+        }
+      />
       <Card>
         <CardHeader>
           <CardTitle>Carte de Gatineau</CardTitle>

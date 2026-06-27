@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent, type ReactElement, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ActionResult } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function MutationDialog({
   children,
   submitLabel = "Enregistrer",
 }: MutationDialogProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -47,6 +49,7 @@ export function MutationDialog({
         }
         toast.success(result.message);
         setOpen(false);
+        router.refresh();
       } catch {
         toast.error("L’opération a échoué. Réessayez.");
       }

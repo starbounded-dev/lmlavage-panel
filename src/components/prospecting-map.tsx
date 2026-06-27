@@ -20,6 +20,7 @@ export type ProspectingMapProps = {
   houses?: ProspectHouse[];
   userPosition?: MapCoordinate | null;
   ariaLabel?: string;
+  compact?: boolean;
 };
 
 function FitPlottedData({ coordinates }: { coordinates: MapCoordinate[] }) {
@@ -37,7 +38,14 @@ function FitPlottedData({ coordinates }: { coordinates: MapCoordinate[] }) {
   return null;
 }
 
-export function ProspectingMap({ visits, clients, houses = [], userPosition = null, ariaLabel = "Carte des secteurs prospectés à Gatineau" }: ProspectingMapProps) {
+export function ProspectingMap({
+  visits,
+  clients,
+  houses = [],
+  userPosition = null,
+  ariaLabel = "Carte des secteurs prospectés à Gatineau",
+  compact = false,
+}: ProspectingMapProps) {
   const plottedCoordinates = useMemo(
     () => [
       ...visits.flatMap((visit) => visit.routeCoordinates),
@@ -51,7 +59,13 @@ export function ProspectingMap({ visits, clients, houses = [], userPosition = nu
   return (
     <div className="relative">
       <div className="prospecting-map overflow-hidden rounded-xl border" role="region" aria-label={ariaLabel}>
-        <MapContainer center={GATINEAU_MAP_CENTER} zoom={13} scrollWheelZoom className="h-[28rem] w-full lg:h-[36rem]" preferCanvas>
+        <MapContainer
+          center={GATINEAU_MAP_CENTER}
+          zoom={13}
+          scrollWheelZoom
+          className={compact ? "h-[19rem] w-full sm:h-[24rem]" : "h-[28rem] w-full lg:h-[36rem]"}
+          preferCanvas
+        >
           <TileLayer attribution={MAP_ATTRIBUTION} url={MAP_TILE_URL} />
           <FitPlottedData coordinates={plottedCoordinates} />
           {visits.map((visit) =>

@@ -9,6 +9,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { RECEIPT_ACCEPT, RECEIPT_VALIDATION_MESSAGE } from "@/lib/receipt-types";
 import type { Business, Expense, Job, Worker } from "@/types/domain";
 
 export function ExpenseActions({ expense, jobs, business, workers }: { expense: Expense; jobs: Job[]; business: Business; workers: Worker[] }) {
@@ -57,8 +58,8 @@ export function ExpenseActions({ expense, jobs, business, workers }: { expense: 
         </Field>
         <Field>
           <FieldLabel htmlFor={`expense-receipt-${expense.id}`}>Nouveau reçu</FieldLabel>
-          <Input id={`expense-receipt-${expense.id}`} name="receipt" type="file" accept="image/jpeg,image/png,application/pdf" />
-          <FieldDescription>{expense.receiptPath ? "Laisser vide pour conserver le reçu actuel." : "JPG, PNG ou PDF, maximum 10 Mo."}</FieldDescription>
+          <Input id={`expense-receipt-${expense.id}`} name="receipt" type="file" accept={RECEIPT_ACCEPT} />
+          <FieldDescription>{expense.receiptPath ? `Laisser vide pour conserver le reçu actuel. ${RECEIPT_VALIDATION_MESSAGE}` : RECEIPT_VALIDATION_MESSAGE}</FieldDescription>
         </Field>
         <ExpenseAmountFields idPrefix={`expense-${expense.id}`} business={business} initialSubtotal={expense.subtotal} />
         <Field className="sm:col-span-2">

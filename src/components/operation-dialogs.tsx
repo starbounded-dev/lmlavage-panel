@@ -16,6 +16,7 @@ import { MutationDialog } from "@/components/mutation-dialog";
 import { MapPickerLazy } from "@/components/map-picker-lazy";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { RECEIPT_ACCEPT, RECEIPT_VALIDATION_MESSAGE } from "@/lib/receipt-types";
 import type { Business, Client, Job, Worker } from "@/types/domain";
 
 export function NewClientDialog({ nextClientNumber }: { nextClientNumber: number }) {
@@ -202,7 +203,8 @@ export function NewExpenseDialog({ jobs, business, workers }: { jobs: Job[]; bus
         </Field>
         <Field>
           <FieldLabel htmlFor="expense-receipt">Reçu (facultatif)</FieldLabel>
-          <Input id="expense-receipt" name="receipt" type="file" accept="image/jpeg,image/png,application/pdf" />
+          <Input id="expense-receipt" name="receipt" type="file" accept={RECEIPT_ACCEPT} />
+          <FieldDescription>{RECEIPT_VALIDATION_MESSAGE}</FieldDescription>
         </Field>
         <ExpenseAmountFields idPrefix="new-expense" business={business} />
         <Field className="sm:col-span-2">

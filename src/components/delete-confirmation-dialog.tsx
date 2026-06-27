@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactElement } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ActionResult } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ type DeleteConfirmationDialogProps = {
 };
 
 export function DeleteConfirmationDialog({ title, description, itemId, action, trigger }: DeleteConfirmationDialogProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -36,6 +38,7 @@ export function DeleteConfirmationDialog({ title, description, itemId, action, t
         }
         toast.success(result.message);
         setOpen(false);
+        router.refresh();
       } catch {
         toast.error("La suppression a échoué. Réessayez.");
       }

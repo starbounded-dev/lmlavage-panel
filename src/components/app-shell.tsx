@@ -40,12 +40,18 @@ const navigation = [
   { href: "/clients", label: "Clients", icon: UsersIcon },
   { href: "/travaux", label: "Travaux", icon: BriefcaseBusinessIcon },
   { href: "/prospection", label: "Prospection", icon: MapPinnedIcon },
+  { href: "/prospection-mobile", label: "Terrain mobile", icon: MapPinnedIcon },
   { href: "/depenses", label: "Dépenses", icon: ReceiptTextIcon },
   { href: "/repartition", label: "Répartition", icon: ChartPieIcon },
   { href: "/parametres", label: "Paramètres", icon: SettingsIcon },
 ] as const;
 
-const mobileNavigation = [navigation[0], navigation[1], navigation[2]];
+const mobileNavigation = [
+  { href: "/tableau-de-bord", label: "Aperçu", icon: CircleGaugeIcon },
+  { href: "/travaux", label: "Travaux", icon: BriefcaseBusinessIcon },
+  { href: "/prospection-mobile", label: "Terrain", icon: MapPinnedIcon },
+  { href: "/depenses", label: "Dépenses", icon: ReceiptTextIcon },
+] as const;
 
 export function AppShell({ children, isDemo }: { children: React.ReactNode; isDemo: boolean }) {
   const pathname = usePathname();
@@ -120,7 +126,7 @@ export function AppShell({ children, isDemo }: { children: React.ReactNode; isDe
         <div className="mx-auto w-full max-w-[1500px] p-4 sm:p-6 lg:p-8">{children}</div>
       </SidebarInset>
 
-      <nav className="fixed inset-x-3 bottom-3 flex h-16 items-center justify-around rounded-2xl bg-sidebar px-2 text-sidebar-foreground shadow-xl md:hidden">
+      <nav className="fixed inset-x-2 bottom-3 z-50 flex h-16 items-center justify-around rounded-2xl bg-sidebar px-1 text-sidebar-foreground shadow-xl md:hidden">
         {mobileNavigation.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -129,16 +135,16 @@ export function AppShell({ children, isDemo }: { children: React.ReactNode; isDe
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-w-18 flex-col items-center gap-1 rounded-xl px-3 py-2 text-[0.68rem]",
+                "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[0.65rem]",
                 active && "bg-sidebar-accent text-sidebar-accent-foreground"
               )}
             >
               <Icon className="size-5" />
-              {item.label === "Tableau de bord" ? "Aperçu" : item.label}
+              {item.label}
             </Link>
           );
         })}
-        <Link href="/parametres" className="flex min-w-18 flex-col items-center gap-1 rounded-xl px-3 py-2 text-[0.68rem]">
+        <Link href="/parametres" className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2 text-[0.65rem]">
           <MoreHorizontalIcon className="size-5" />
           Plus
         </Link>
