@@ -44,3 +44,9 @@ export async function uploadReceiptFile(supabase: SupabaseClient, businessId: st
 export async function removeReceiptFile(supabase: SupabaseClient, path: string) {
   await storageClient(supabase).storage.from("receipts").remove([path]);
 }
+
+export async function downloadReceiptFile(supabase: SupabaseClient, path: string) {
+  const { data, error } = await storageClient(supabase).storage.from("receipts").download(path);
+  if (error || !data) return { ok: false as const, message: error?.message ?? "Reçu introuvable." };
+  return { ok: true as const, file: data };
+}

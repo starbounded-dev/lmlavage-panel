@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { PaperclipIcon } from "lucide-react";
 import { ExpenseActions } from "@/components/expense-actions";
 import { NewExpenseDialog } from "@/components/operation-dialogs";
 import { PageHeader } from "@/components/page-header";
+import { ReceiptPreviewLink } from "@/components/receipt-preview-link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,7 +46,7 @@ export default async function ExpensesPage() {
                   <TableCell>{formatDate(expense.date)}</TableCell><TableCell className="font-medium">{expense.vendor}</TableCell><TableCell><Badge variant="secondary">{expense.category}</Badge></TableCell>
                   <TableCell>{expense.purchaserName ?? <span className="text-xs text-muted-foreground">Non précisé</span>}</TableCell>
                   <TableCell className="max-w-64 whitespace-normal text-sm text-muted-foreground">{expense.notes ?? "—"}</TableCell>
-                  <TableCell>{expense.receiptPath ? <PaperclipIcon className="size-4 text-primary" /> : <span className="text-xs text-muted-foreground">Absent</span>}</TableCell>
+                  <TableCell>{expense.receiptPath ? <ReceiptPreviewLink receiptPath={expense.receiptPath} vendor={expense.vendor} /> : <span className="text-xs text-muted-foreground">Absent</span>}</TableCell>
                   <TableCell className="text-right font-mono">{formatCad(expense.subtotal)}</TableCell><TableCell className="text-right font-mono">{formatCad(expense.gstAmount + expense.qstAmount)}</TableCell><TableCell className="text-right font-mono font-medium">{formatCad(expense.total)}</TableCell>
                   <TableCell><ExpenseActions expense={expense} jobs={data.jobs} business={data.business} workers={data.workers} /></TableCell>
                 </TableRow>
