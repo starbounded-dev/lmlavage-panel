@@ -8,6 +8,7 @@ import { calculateIncludedTaxes, calculateTaxes, roundMoney } from "@/lib/calcul
 import { isDemoMode } from "@/lib/env";
 import { requireBusinessId } from "@/lib/auth";
 import { findWorkerForSalesSplit, parseWorkerIdList, SALES_SPLIT_PROFILES } from "@/lib/sales-splits";
+import { PROSPECT_HOUSE_STATUSES } from "@/lib/prospecting";
 import type { SalesSplitProfile, Worker } from "@/types/domain";
 import { syncJobToGoogle } from "@/lib/google/sync";
 import { resolveJobSchedule } from "@/lib/job-schedule";
@@ -35,6 +36,7 @@ function calculateExpenseAmounts(
 }
 
 const salesSplitProfileSchema = z.enum(SALES_SPLIT_PROFILES);
+const prospectHouseStatusSchema = z.enum(PROSPECT_HOUSE_STATUSES);
 
 function resolveSellerWorkerId(profile: SalesSplitProfile, workers: Worker[]) {
   if (profile === "split_alexis_guillaume" || profile === "legacy_standard") {
@@ -985,6 +987,193 @@ export async function deleteVisitAction(visitId: string): Promise<ActionResult> 
   if (error) return { ok: false, message: error.message };
   revalidatePath("/prospection");
   return { ok: true, message: "Visite supprimée." };
+}
+
+function parseProspectHouseForm(formData: FormData) {
+  const parsed = z
+    .object({
+      address: requiredText,
+      city: requiredText,
+      province: z.string().trim().min(2).max(3),
+      postalCode: z.string().trim().max(12),
+      status: prospectHouseStatusSchema,
+      visitedAt: z.string().trim().max(20),
+      revisitDate: z.string().trim().max(20),
+      notes: z.string().trim().max(2000),
+    })
+    .safeParse({
+      address: formValue(formData, "address"),
+      city: formValue(formData, "city") || "Gatineau",
+      province: formValue(formData, "province") || "QC",
+      postalCode: formValue(formData, "postalCode"),
+      status: formValue(formData, "status") || "no_answer",
+      visitedAt: formValue(formData, "visitedAt"),
+      revisitDate: formValue(formData, "revisitDate"),
+      notes: formValue(formData, "notes"),
+    });
+
+  const coordinates = parseMapCoordinates(formValue(formData, "houseCoordinates"));
+  if (!parsed.success || !coordinates.ok || (coordinates.coordinates?.length ?? 0) > 1) {
+    return { ok: false as const };
+  }
+
+  return { ok: true as const, data: parsed.data, coordinate: coordinates.coordinates?.[0] ?? null };
+}
+
+export async function createProspectHouseAction(formData: FormData): Promise<ActionResult> {
+  const parsed = parseProspectHouseForm(formData);
+  if (!parsed.ok) return { ok: false, message: "Vérifiez les renseignements de la maison." };
+  const { businessId, auth } = await requireBusinessId();
+  if (auth.isDemo) return { ok: true, message: "Maison validée en mode démonstration." };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
+  const { error } = await supabase.from("prospecting_houses").insert({
+    business_id: businessId,
+    address: parsed.data.address,
+    city: parsed.data.city,
+    province: parsed.data.province,
+    postal_code: parsed.data.postalCode || null,
+    status: parsed.data.status,
+    visited_at: parsed.data.visitedAt || null,
+    revisit_date: parsed.data.revisitDate || null,
+    notes: parsed.data.notes || null,
+    latitude: parsed.coordinate?.[0] ?? null,
+    longitude: parsed.coordinate?.[1] ?? null,
+  });
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/prospection");
+  return { ok: true, message: "Maison ajoutée au mode terrain." };
+}
+
+export async function updateProspectHouseAction(formData: FormData): Promise<ActionResult> {
+  const houseId = requiredText.safeParse(formValue(formData, "houseId"));
+  const parsed = parseProspectHouseForm(formData);
+  if (!houseId.success || !parsed.ok) return { ok: false, message: "Vérifiez les renseignements de la maison." };
+  const { businessId, auth } = await requireBusinessId();
+  if (auth.isDemo) return { ok: true, message: "Maison modifiée en mode démonstration." };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
+  const { error } = await supabase
+    .from("prospecting_houses")
+    .update({
+      address: parsed.data.address,
+      city: parsed.data.city,
+      province: parsed.data.province,
+      postal_code: parsed.data.postalCode || null,
+      status: parsed.data.status,
+      visited_at: parsed.data.visitedAt || null,
+      revisit_date: parsed.data.revisitDate || null,
+      notes: parsed.data.notes || null,
+      latitude: parsed.coordinate?.[0] ?? null,
+      longitude: parsed.coordinate?.[1] ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("business_id", businessId)
+    .eq("id", houseId.data);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/prospection");
+  return { ok: true, message: "Maison mise à jour." };
+}
+
+export async function setProspectHouseStatusAction(houseId: string, status: string): Promise<ActionResult> {
+  const parsed = z.object({ houseId: requiredText, status: prospectHouseStatusSchema }).safeParse({ houseId, status });
+  if (!parsed.success) return { ok: false, message: "Statut invalide." };
+  const { businessId, auth } = await requireBusinessId();
+  if (auth.isDemo) return { ok: true, message: "Statut validé en mode démonstration." };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
+  const { error } = await supabase
+    .from("prospecting_houses")
+    .update({ status: parsed.data.status, updated_at: new Date().toISOString() })
+    .eq("business_id", businessId)
+    .eq("id", parsed.data.houseId);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/prospection");
+  return { ok: true, message: "Statut mis à jour." };
+}
+
+export async function convertProspectHouseToClientAction(houseId: string): Promise<ActionResult> {
+  const parsedId = requiredText.safeParse(houseId);
+  if (!parsedId.success) return { ok: false, message: "Maison invalide." };
+  const { businessId, auth } = await requireBusinessId();
+  if (auth.isDemo) return { ok: true, message: "Client validé en mode démonstration." };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
+  const { data: house, error: houseError } = await supabase
+    .from("prospecting_houses")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("id", parsedId.data)
+    .single();
+  if (houseError || !house) return { ok: false, message: "Maison introuvable." };
+  if (house.created_client_id) return { ok: false, message: "Cette maison est déjà liée à un client." };
+
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      business_id: businessId,
+      name: null,
+      notes: `Créé depuis la prospection: ${house.address}.`,
+      needs_review: true,
+    })
+    .select("id,client_number")
+    .single();
+  if (clientError || !client) return { ok: false, message: clientError?.message ?? "Client impossible à créer." };
+
+  const { data: property, error: propertyError } = await supabase
+    .from("properties")
+    .insert({
+      business_id: businessId,
+      client_id: client.id,
+      address: house.address,
+      city: house.city || "Gatineau",
+      province: house.province || "QC",
+      postal_code: house.postal_code || null,
+      latitude: house.latitude ?? null,
+      longitude: house.longitude ?? null,
+    })
+    .select("id")
+    .single();
+  if (propertyError || !property) {
+    await supabase.from("clients").delete().eq("business_id", businessId).eq("id", client.id);
+    return { ok: false, message: propertyError?.message ?? "Propriété impossible à créer." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("prospecting_houses")
+    .update({
+      status: "client_obtained",
+      created_client_id: client.id,
+      created_property_id: property.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("business_id", businessId)
+    .eq("id", parsedId.data);
+  if (updateError) {
+    await supabase.from("clients").delete().eq("business_id", businessId).eq("id", client.id);
+    return { ok: false, message: updateError.message };
+  }
+
+  revalidatePath("/prospection");
+  revalidatePath("/clients");
+  return { ok: true, message: `Client #${client.client_number} créé avec l'adresse copiée.` };
+}
+
+export async function deleteProspectHouseAction(houseId: string): Promise<ActionResult> {
+  const parsedId = requiredText.safeParse(houseId);
+  if (!parsedId.success) return { ok: false, message: "Maison invalide." };
+  const { businessId, auth } = await requireBusinessId();
+  if (auth.isDemo) return { ok: true, message: "Maison supprimée en mode démonstration." };
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) return { ok: false, message: "Supabase n’est pas configuré." };
+  const { error } = await supabase
+    .from("prospecting_houses")
+    .delete()
+    .eq("business_id", businessId)
+    .eq("id", parsedId.data);
+  if (error) return { ok: false, message: error.message };
+  revalidatePath("/prospection");
+  return { ok: true, message: "Maison supprimée." };
 }
 
 async function updateJobState(jobId: string, values: Record<string, unknown>) {

@@ -10,6 +10,7 @@ export type SalesSplitProfile =
   | "po_sale"
   | "split_alexis_guillaume";
 export type MapCoordinate = [latitude: number, longitude: number];
+export type ProspectHouseStatus = "no_answer" | "revisit" | "interested" | "client_obtained" | "do_not_revisit";
 
 export type Business = {
   id: string;
@@ -113,6 +114,22 @@ export type CanvassingVisit = {
   routeCoordinates: MapCoordinate[];
 };
 
+export type ProspectHouse = {
+  id: string;
+  address: string;
+  city: string;
+  province: string;
+  postalCode: string | null;
+  status: ProspectHouseStatus;
+  visitedAt: string | null;
+  revisitDate: string | null;
+  notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  createdClientId: string | null;
+  createdPropertyId: string | null;
+};
+
 export type AllocationBucket = {
   id: string;
   name: string;
@@ -138,6 +155,7 @@ export type AppData = {
   jobs: Job[];
   expenses: Expense[];
   canvassingVisits: CanvassingVisit[];
+  prospectHouses: ProspectHouse[];
   allocationBuckets: AllocationBucket[];
   revenueSeries: RevenuePoint[];
 };

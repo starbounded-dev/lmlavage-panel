@@ -15,6 +15,7 @@ import type {
   Expense,
   Job,
   Property,
+  ProspectHouse,
   RevenuePoint,
   Worker,
 } from "@/types/domain";
@@ -88,6 +89,7 @@ export async function getAppData(): Promise<AppData> {
     jobWorkersResult,
     expensesResult,
     visitsResult,
+    prospectHousesResult,
     bucketsResult,
     allocationsResult,
   ] = await Promise.all([
@@ -103,6 +105,12 @@ export async function getAppData(): Promise<AppData> {
       .select("*")
       .eq("business_id", businessId)
       .order("visited_at", { ascending: false, nullsFirst: false }),
+    supabase
+      .from("prospecting_houses")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("visited_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false }),
     supabase.from("allocation_buckets").select("*").eq("business_id", businessId).eq("active", true).order("sort_order"),
     supabase.from("payment_allocations").select("*").eq("business_id", businessId),
   ]);
@@ -116,6 +124,7 @@ export async function getAppData(): Promise<AppData> {
     jobWorkersResult,
     expensesResult,
     visitsResult,
+    prospectHousesResult,
     bucketsResult,
     allocationsResult,
   ];
@@ -240,6 +249,26 @@ export async function getAppData(): Promise<AppData> {
     routeCoordinates: mapRouteFromDatabase(row.route_coordinates),
   }));
 
+  const prospectHouses: ProspectHouse[] = rows(prospectHousesResult.data).map((row) => {
+    const coordinate = mapCoordinateFromDatabase(row.latitude, row.longitude);
+
+    return {
+      id: text(row.id),
+      address: text(row.address, "Adresse à confirmer"),
+      city: text(row.city, "Gatineau"),
+      province: text(row.province, "QC"),
+      postalCode: nullableText(row.postal_code),
+      status: text(row.status, "no_answer") as ProspectHouse["status"],
+      visitedAt: nullableText(row.visited_at),
+      revisitDate: nullableText(row.revisit_date),
+      notes: nullableText(row.notes),
+      latitude: coordinate?.[0] ?? null,
+      longitude: coordinate?.[1] ?? null,
+      createdClientId: nullableText(row.created_client_id),
+      createdPropertyId: nullableText(row.created_property_id),
+    };
+  });
+
   const allocationRows = rows(allocationsResult.data);
   const allocationBuckets: AllocationBucket[] = rows(bucketsResult.data).map((row) => ({
     id: text(row.id),
@@ -262,6 +291,7 @@ export async function getAppData(): Promise<AppData> {
     jobs,
     expenses,
     canvassingVisits,
+    prospectHouses,
     allocationBuckets,
     revenueSeries: deriveRevenueSeries(jobs),
   };

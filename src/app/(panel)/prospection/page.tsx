@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { NewVisitDialog } from "@/components/operation-dialogs";
 import { VisitActions } from "@/components/visit-actions";
 import { PageHeader } from "@/components/page-header";
+import { ProspectingFieldMode } from "@/components/prospecting-field-mode";
 import { ProspectingMapLazy } from "@/components/prospecting-map-lazy";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,16 +27,18 @@ export default async function ProspectingPage() {
     )
   );
   const mappedVisits = data.canvassingVisits.filter((visit) => visit.routeCoordinates.length > 1).length;
+  const mappedHouses = data.prospectHouses.filter((house) => house.latitude != null && house.longitude != null).length;
   return (
     <>
       <PageHeader title="Prospection" description="Portions de rues parcourues, maisons clientes et dates prévues pour revenir." action={<NewVisitDialog />} />
+      <ProspectingFieldMode houses={data.prospectHouses} />
       <Card>
         <CardHeader>
           <CardTitle>Carte de Gatineau</CardTitle>
-          <CardDescription>{mappedVisits} portion{mappedVisits !== 1 ? "s" : ""} tracée{mappedVisits !== 1 ? "s" : ""} en rouge · {clientLocations.length} maison{clientLocations.length !== 1 ? "s" : ""} cliente{clientLocations.length !== 1 ? "s" : ""} en vert.</CardDescription>
+          <CardDescription>{mappedVisits} portion{mappedVisits !== 1 ? "s" : ""} tracée{mappedVisits !== 1 ? "s" : ""} en rouge · {clientLocations.length} maison{clientLocations.length !== 1 ? "s" : ""} cliente{clientLocations.length !== 1 ? "s" : ""} en vert · {mappedHouses} maison{mappedHouses !== 1 ? "s" : ""} terrain avec statut.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ProspectingMapLazy visits={data.canvassingVisits} clients={clientLocations} />
+          <ProspectingMapLazy visits={data.canvassingVisits} clients={clientLocations} houses={data.prospectHouses} />
         </CardContent>
       </Card>
       <Card>
